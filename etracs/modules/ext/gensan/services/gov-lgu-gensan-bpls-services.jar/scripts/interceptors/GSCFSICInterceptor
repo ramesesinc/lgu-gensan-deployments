@@ -1,0 +1,56 @@
+import com.rameses.annotations.*;
+
+class GSCFSICInterceptor {
+
+	@DataContext('gsc_business_bfp') 
+	def bfp_db; 
+
+	@After( pattern="BusinessApplicationWorkflowService.signal") 
+	public void afterSignal( evt ) { 
+		def result = evt.result; 
+		if ( !result ) return; 
+
+		def appid = result.task?.refid; 
+		if ( !appid ) return; 
+
+		def tostate = result.task?.state; 
+		if ( !tostate ) return; 
+
+		def fromaction = evt.args[0].action; 
+		if ( tostate == 'payment') {
+			if ( fromaction == 'revert' ) {
+				bfp_db.find([ applicationid: appid ]).delete();
+			}
+
+			def info = bfp_db.findApp([ objid: appid ]); 
+			if ( !info ) return; 
+
+			info.amount = (info.amount ? info.amount : 0.0);
+			info.tax = (info.tax ? info.tax : 0.0);
+			info.regfee = (info.regfee ? info.regfee : 0.0);
+			info.obofee = (info.obofee ? info.obofee : 0.0); 
+			info.regfee = info.regfee - info.obofee; 
+			info.othercharge = (info.othercharge ? info.othercharge : 0.0);
+			info.surcharge = (info.surcharge ? info.surcharge : 0.0); 
+			info.penalty = (info.penalty ? info.penalty : 0.0);
+
+			def totalfee = info.regfee + info.obofee + info.othercharge + info.surcharge + info.penalty; 
+
+			def fsicfee = totalfee * 0.15; 
+			if ( fsicfee < 500.00 ) fsicfee = 500.00; 
+
+			info.fsicfee = new BigDecimal(new java.text.DecimalFormat('0.00').format( fsicfee )); 
+			bfp_db.create( info ); 
+
+		} else if ( tostate == 'billing' ) {
+			bfp_db.find([ applicationid: appid ]).delete();
+
+		} else if ( tostate == 'release' ) {
+			def payinfo = bfp_db.findPayment([ applicationid: appid ]); 
+			bfp_db.find([ applicationid: appid ]).update([
+				collectorid   : payinfo?.collector?.objid, 
+				collectorname : payinfo?.collector?.name  
+			]); 
+		}
+	} 
+}

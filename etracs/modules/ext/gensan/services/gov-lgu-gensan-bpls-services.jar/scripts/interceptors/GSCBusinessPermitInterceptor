@@ -1,0 +1,21 @@
+import com.rameses.annotations.*;
+
+class GSCBusinessPermitInterceptor {
+	
+	@ActiveDB('gsc_business_permit') 
+	def permit_db;
+
+	@After( pattern="BusinessPermitService.getReport") 
+	public void afterGetReport( evt ) { 
+		def result = evt.result;
+
+		result.items = permit_db.getItems([ permitid : result.objid ]);  
+		result.items.each{
+			def capital = (it.capital ? it.capital : 0.0); 
+			def gross = (it.gross ? it.gross : 0.0); 
+			def actualgross = (it.actualgross ? it.actualgross : 0.0); 
+			def grosscap = capital + (actualgross ? actualgross : gross); 
+			if ( grosscap ) it.grosscap = grosscap; 
+		} 
+	}
+}

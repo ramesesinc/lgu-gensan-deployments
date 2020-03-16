@@ -1,0 +1,21 @@
+import com.rameses.annotations.*;
+
+class GSCBusinessAssessmentInterceptor {
+	
+	@ActiveDB('gsc_business_application') 
+	def app_db; 
+
+	@After( pattern="BusinessAssessmentService.getAssessment") 
+	public void afterGetAssessment( evt ) { 
+		def param = evt.args[0]; 
+		def grosscaps = app_db.getLobGrossCap([ applicationid: param.objid ]); 
+		if ( grosscaps ) {
+			def result = evt.result; 
+			result.taxfees.findAll{( it.taxfeetype == 'TAX' )}.each{ o-> 
+				def gc = grosscaps.find{( it.lobid == o.lob?.objid )} 
+				o.capital = gc?.capital; 
+				o.gross = (gc?.actualgross ? gc.actualgross :  gc?.gross);
+			} 
+		} 
+	} 
+} 

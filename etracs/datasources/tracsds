@@ -1,0 +1,6 @@
+dialect=mssql
+driverClass=net.sourceforge.jtds.jdbc.Driver
+url=jdbc:jtds:sqlserver://${tracs_host}/${tracs_db}
+user=${tracs_user}
+pwd=${tracs_pass}
+ver=2000

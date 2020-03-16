@@ -1,0 +1,5 @@
+dialect=mysql
+driverClass=com.mysql.jdbc.Driver
+url=jdbc:mysql://${lgrpts_host}/${lgrpts_db}
+user=${lgrpts_user}
+pwd=${lgrpts_pass}

@@ -1,21 +1,21 @@
 <app>
 <env>
 app.title=ETRACS 2.5 build 05 20200317 (CITY OF GENERAL SANTOS)
-app.host=localhost:8070
+app.host=172.16.11.111:8070
 app.cluster=osiris3
 app.context=etracs25
-app.help=http://localhost:8080/help
+app.help=http://172.16.11.111:8080/help
 app.loader=com.rameses.osiris2.client.OsirisAppLoader
 readTimeout=300000
 connectionTimeout=5000
 filemgmt.enabled=false
 
-ws.host=localhost:8060
-#res.host=localhost
+ws.host=172.16.11.111:8060
+#res.host=172.16.11.111
 
-socketio.host=localhost:7080
+socketio.host=172.16.11.111:7080
 
-entity.app.host=localhost:8070
+entity.app.host=172.16.11.111:8070
 entity.app.context=etracs25
 </env>
 <modules> 

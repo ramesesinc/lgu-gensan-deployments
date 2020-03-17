@@ -3,6 +3,11 @@ IP  : 172.16.11.111
 User: ctzen
 Pass: c+z3n
 
+[Portainer]
+URL  : http://172.16.11.111:9000
+User : admin
+Pass : p@ssw0rd#
+
 [AD]
 Address : 566882540
 Pass    : !c+42ol8

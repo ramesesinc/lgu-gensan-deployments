@@ -611,21 +611,24 @@ public class RPTBillingService
 		def firstitem = bill.items.first()
 		def lastitem = bill.items.last()
 		def speriod = new StringBuffer()
+		if (firstitem.qtr  == null) {
+			firstitem.qtr = (bill.rptledger.lastqtrpaid == 4 ? 1 : bill.rptledger.lastqtrpaid + 1)
+		}
 		if (firstitem.year == lastitem.year) {
-			if (firstitem.qtr != null && (firstitem.qtr != 1 || bill.billtoqtr != 4)) {
-				speriod.append(getQuarterIndicators(firstitem.qtr, bill.billtoqtr, true))
+			if (firstitem.qtr == bill.billtoqtr) {
+				speriod.append(firstitem.qtr + 'Q,')
+			} else if (firstitem.qtr != 1 || bill.billtoqtr != 4) {
+				speriod.append(firstitem.qtr + '' + bill.billtoqtr + 'Q,')
 			} else if (firstitem.qtr == null && bill.billtoqtr != 4) {
-				speriod.append(getQuarterIndicators(1, bill.billtoqtr, true))
+				speriod.append('1' + bill.billtoqtr + 'Q,')
 			}
 			speriod.append(firstitem.year)
 		} else {
-			if (firstitem.qtr != null && firstitem.qtr != 1) {
-				speriod.append(getQuarterIndicators(firstitem.qtr, 4, true))
-			}
+			speriod.append(firstitem.qtr + 'Q,')
 			speriod.append(firstitem.year)
 			speriod.append('-')
 			if (lastitem.qtr != null && bill.billtoqtr != 4) {
-				speriod.append(getQuarterIndicators(1, bill.billtoqtr, true))
+				speriod.append(bill.billtoqtr + 'Q,')
 			}
 			speriod.append(lastitem.year)
 		}        

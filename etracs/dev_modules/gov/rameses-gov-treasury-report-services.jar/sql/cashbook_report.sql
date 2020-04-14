@@ -98,26 +98,41 @@ order by sortdate, refdate
 select refdate, particulars, refno, dr, cr 
 from ( 
 	select 
-		refdate, controlid, formno, min(series) as minseries, max(series) as maxseries, 
+		batchid, refdate, controlid, formno, min(series) as minseries, max(series) as maxseries, 
 		(case when formno = '51' then 'VARIOUS TAXES AND FEES' else af_title end) as particulars, 
 		concat('AF ', formno, '#', min(refno), '-', max(refno)) as refno, 
 		sum(dr) as dr, 0.0 as cr, min(sortdate) as sortdate 
 	from ( 
 		select 
-			c.refdate, c.controlid, c.formno, c.series, 
+			1 as batchid, c.refdate, c.controlid, c.formno, c.series, 
 			af.title as af_title, c.refno, c.dr, c.cr, c.sortdate 
 		from vw_cashbook_cashreceipt c  
 			inner join af on af.objid = c.formno 
 		where c.refdate >= $P{fromdate} 
 			and c.refdate <  $P{todate} 
 			and c.collectorid = $P{accountid} 
-			and c.fundid in (${fundfilter})
+			and c.fundid in (${fundfilter}) 
 			and af.formtype = 'serial' 
+			and (c.remittanceid is null or c.refdate = c.remittancedate) 
 
 		union all 
 
 		select 
-			t1.refdate, t1.controlid, t1.formno, t1.series, 
+			2 as batchid, c.refdate, c.controlid, c.formno, c.series, 
+			af.title as af_title, c.refno, c.dr, c.cr, c.sortdate 
+		from vw_cashbook_cashreceipt c  
+			inner join af on af.objid = c.formno 
+		where c.refdate >= $P{fromdate} 
+			and c.refdate <  $P{todate} 
+			and c.collectorid = $P{accountid} 
+			and c.fundid in (${fundfilter}) 
+			and af.formtype = 'serial' 
+			and c.remittancedate > c.refdate  
+
+		union all 
+
+		select 
+			1 as batchid, t1.refdate, t1.controlid, t1.formno, t1.series, 
 			t1.af_title, t1.refno, -cs.dr as dr, 0.0 as cr, t1.sortdate 
 		from ( 
 			select 
@@ -125,11 +140,12 @@ from (
 				af.title as af_title, c.refdate, c.refno, c.sortdate 
 			from vw_cashbook_cashreceipt c  
 				inner join af on af.objid = c.formno 
-			where c.refdate >= $P{fromdate} 
+			where c.refdate >= $P{fromdate}  
 				and c.refdate <  $P{todate} 
 				and c.collectorid = $P{accountid} 
-				and c.fundid in (${fundfilter}) 
+				and c.fundid in (${fundfilter})  
 				and af.formtype = 'serial' 
+				and (c.remittanceid is null or c.refdate = c.remittancedate) 
 			group by 
 				c.receiptid, c.controlid, c.formno, c.series, 
 				af.title, c.refdate, c.refno, c.sortdate 
@@ -139,23 +155,61 @@ from (
 		union all 
 
 		select 
-			c.refdate, c.controlid, c.formno, c.series, 
+			2 as batchid, t1.refdate, t1.controlid, t1.formno, t1.series, 
+			t1.af_title, t1.refno, -cs.dr as dr, 0.0 as cr, t1.sortdate 
+		from ( 
+			select 
+				c.receiptid, c.controlid, c.formno, c.series, 
+				af.title as af_title, c.refdate, c.refno, c.sortdate 
+			from vw_cashbook_cashreceipt c  
+				inner join af on af.objid = c.formno 
+			where c.refdate >= $P{fromdate}  
+				and c.refdate <  $P{todate} 
+				and c.collectorid = $P{accountid} 
+				and c.fundid in (${fundfilter})  
+				and af.formtype = 'serial' 
+				and c.remittancedate > c.refdate 
+			group by 
+				c.receiptid, c.controlid, c.formno, c.series, 
+				af.title, c.refdate, c.refno, c.sortdate 
+		)t1, vw_cashbook_cashreceipt_share cs 
+		where cs.receiptid = t1.receiptid 
+
+		union all 
+
+		select 
+			1 as batchid, c.refdate, c.controlid, c.formno, c.series, 
 			af.title as af_title, c.refno, c.dr, 0.0 as cr, c.sortdate 
 		from vw_cashbook_cashreceipt_share c  
 			inner join af on af.objid = c.formno 
-		where c.refdate >= $P{fromdate} 
+		where c.refdate >= $P{fromdate}  
 			and c.refdate <  $P{todate} 
 			and c.collectorid = $P{accountid} 
-			and c.fundid in (${fundfilter}) 
+			and c.fundid in (${fundfilter})  
 			and af.formtype = 'serial' 
+			and (c.remittanceid is null or c.refdate = c.remittancedate) 
+
+		union all 
+
+		select 
+			2 as batchid, c.refdate, c.controlid, c.formno, c.series, 
+			af.title as af_title, c.refno, c.dr, 0.0 as cr, c.sortdate 
+		from vw_cashbook_cashreceipt_share c  
+			inner join af on af.objid = c.formno 
+		where c.refdate >= $P{fromdate}  
+			and c.refdate <  $P{todate} 
+			and c.collectorid = $P{accountid} 
+			and c.fundid in (${fundfilter})  
+			and af.formtype = 'serial' 
+			and c.remittancedate > c.refdate 
 	)t0 
-	group by refdate, formno, controlid, 
+	group by batchid, refdate, formno, controlid, 
 		(case when formno = '51' then 'VARIOUS TAXES AND FEES' else af_title end) 
 
 	union all 
 
 	select 
-		c.refdate, c.objid as controlid, c.formno, min(c.series) as minseries, min(c.series) as maxseries, 
+		1 as batchid, c.refdate, c.objid as controlid, c.formno, min(c.series) as minseries, min(c.series) as maxseries, 
 		min((case when c.formno = '51' then 'VARIOUS TAXES AND FEES' else af.title end)) as particulars,
 		min(concat('*** VOIDED - AF ',c.formno,'#',c.refno,' ***')) as refno, sum(c.dr) as dr, sum(c.cr) as cr, 
 		min(c.sortdate) as sortdate 
@@ -171,7 +225,7 @@ from (
 	union all 
 
 	select 
-		c.refdate, null as controlid, c.formno, null as minseries, null as maxseries, 
+		1 as batchid, c.refdate, null as controlid, c.formno, null as minseries, null as maxseries, 
 		af.title as particulars, c.formno as refno, sum(c.dr) as dr, 0.0 as cr, 
 		min(c.sortdate) as sortdate 
 	from vw_cashbook_cashreceipt c 
@@ -186,7 +240,7 @@ from (
 	union all 
 
 	select 
-		r.controldate as refdate, null as controlid, 
+		1 as batchid, r.controldate as refdate, null as controlid, 
 		'remittance' as reftype, null as minseries, null as maxseries, 
 		concat('REMITTANCE - ', r.liquidatingofficer_name) as particulars, 
 		r.controlno as refno, 0.0 as dr, sum(t2.amount)-sum(t2.share) as cr, 

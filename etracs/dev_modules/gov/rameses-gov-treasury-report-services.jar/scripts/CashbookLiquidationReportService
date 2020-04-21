@@ -34,7 +34,6 @@ class CashbookLiquidationReportService {
 			}
 		} 
 
-		println 'header -> '+ header;
 		result.header = header; 
 		return result; 
 	}

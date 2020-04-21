@@ -100,9 +100,15 @@ class CashbookReportService {
 		} 
 		else { 
 			data.items = report_db.getDetails( params ); 
-			balinfo = report_db.findBeginBalance( params ); 
+
+			def m = [:];
+			m.putAll( params );  
+			m.fromdate = new java.text.SimpleDateFormat('yyyy-01-01').format( params.fromdate );
+			m.todate = params.fromdate; 			
+			balinfo = report_db.findBeginBalance2( m ); 
 		} 
 
+		data.begbaldr = data.begbalcr = 0.0; 
 		if ( balinfo ) {
 			balinfo.refid = 'begin_balance'; 
 			balinfo.reftype = '** BEGIN BALANCE **'; 
@@ -121,6 +127,9 @@ class CashbookReportService {
 				} else {
 					data.items << balinfo; 
 				}
+
+				data.begbaldr = balinfo.dr;
+				data.begbalcr = balinfo.cr;
 			} 
 		}
 
@@ -163,6 +172,4 @@ class CashbookReportService {
 			throw new Exception("'"+ params.period?.code +"' period option not supported"); 
 		}
 	}
-
-	
 }

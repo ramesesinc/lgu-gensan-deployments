@@ -40,16 +40,32 @@ class CRAAFReportService {
 		def enddate = DateUtil.add( startdate, '1M' ); 	
 
 		def list = adb.getCraafData([ startdate: startdate, enddate: enddate ]); 
+
+		def issuedlist = [];
+		def unissuedlist = [];
 		list.eachWithIndex{ o, idx-> 
 			o.lineno = idx; 
+			if ( o.qtyissued==null || o.qtyissued==0 ) {
+				unissuedlist << o; 
+			} else {
+				issuedlist << o;
+			}
 		}
+		list.clear(); 
+		list = issuedlist;
 
-		def unissuedlist = list.findAll{( it.qtyissued==null || it.qtyissued==0 )} 
-		list.removeAll( unissuedlist ); 
-
+		def serials = []; 
+		def nonserials = []; 
 		def groupindex = 1000; 
-		def serials = unissuedlist.findAll{ it.formtype == 'serial' } 
-		unissuedlist.removeAll( serials ); 
+		unissuedlist.each{ 
+			if ( it.formtype == 'serial' ) { 
+				serials << it; 
+			} else { 
+				nonserials << it; 
+			} 
+		} 
+		unissuedlist.clear();
+		unissuedlist = nonserials; 
 
 		serials.groupBy{[ ownerid: it.ownerid, formno: it.formno, prefix: it.prefix, suffix: it.suffix ]}.each{ k,v-> 
 			v.sort{ it.startseries } 

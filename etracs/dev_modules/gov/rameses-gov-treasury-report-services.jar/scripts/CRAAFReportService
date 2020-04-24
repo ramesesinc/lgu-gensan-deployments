@@ -14,8 +14,8 @@ class CRAAFReportService {
 	@ProxyMethod
 	public def generateCraafData( params ) {
 
-		def data = [ items : getCraafData(params) ]; 
-		if ( !data.items ) throw new Exception("No record(s) found");
+		def data = [ reportdata : getCraafData(params) ]; 
+		if ( !data.reportdata ) throw new Exception("No record(s) found");
 
 		data.info = [ 
 			PREPAREDBY 		: env.FULLNAME,
@@ -25,14 +25,11 @@ class CRAAFReportService {
 		return data; 
 	}
 
-	@ProxyMethod
-	public def getFormControlList(  ) {
-		return [
-			[type:"integer", caption:'Year', name:'entity.year', required:true, preferredSize:'80,19', captionWidth:120],
-            [type:"combo", caption:'Month', name:'entity.month', items:'months', expression:'#{item.name}', preferredSize:'80,19', captionWidth:120],
-		]
+	private def resolveSeriesValue( series ) { 
+		if ( series == null ) return null; 
+		else if ( series == 999999999 || series == -999999999 ) return null; 
+		else return series; 
 	}
-
 
 	private def getCraafData( params ) { 
 		def YMD = new java.text.SimpleDateFormat('yyyy-MM-dd'); 
@@ -45,11 +42,27 @@ class CRAAFReportService {
 		def unissuedlist = [];
 		list.eachWithIndex{ o, idx-> 
 			o.lineno = idx; 
+			o.formno = o.afid;
+
 			if ( o.qtyissued==null || o.qtyissued==0 ) {
 				unissuedlist << o; 
 			} else {
 				issuedlist << o;
 			}
+
+			if ( o.qtybegin > 0 ) {
+				o.receivedendseries = o.receivedstartseries = null; 
+				o.qtyreceived = 0; 
+			}
+			
+			o.receivedstartseries = resolveSeriesValue( o.receivedstartseries ); 
+			o.receivedendseries = resolveSeriesValue( o.receivedendseries ); 
+			o.beginstartseries = resolveSeriesValue( o.beginstartseries ); 
+			o.beginendseries = resolveSeriesValue( o.beginendseries ); 
+			o.issuedstartseries = resolveSeriesValue( o.issuedstartseries ); 
+			o.issuedendseries = resolveSeriesValue( o.issuedendseries ); 
+			o.endingstartseries = resolveSeriesValue( o.endingstartseries ); 
+			o.endingendseries = resolveSeriesValue( o.endingendseries ); 
 		}
 		list.clear(); 
 		list = issuedlist;

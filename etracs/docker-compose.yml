@@ -48,3 +48,6 @@ services:
 
       - ./dev_modules/gov:/gov
       - ./dev_modules/gov/etracs__gov.conf:/apps/etracs25/modules.conf.d/etracs__gov.conf
+
+      - ./dev_modules/bpls:/bpls
+      - ./dev_modules/bpls/etracs_bpls.conf:/apps/etracs25/modules.conf.d/etracs_bpls.conf

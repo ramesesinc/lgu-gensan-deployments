@@ -38,7 +38,7 @@ entity.app.context=etracs25
 	<module file="custom/gov-lgu-gensan-business-permit.jar" version="3.07"/>
 
 	<module file="custom/gov-lgu-gensan-bpls-tool.jar" version="1.2"/>
-	<module file="custom/gov-lgu-gensan-bpls-report.jar" version="1.21"/>
+	<module file="custom/gov-lgu-gensan-bpls-report.jar" version="1.22"/>
 	<module file="custom/gov-lgu-gensan-ctc-report.jar" version="1.0"/>
 	<module file="custom/gov-lgu-gensan-treasury-report.jar" version="1.08"/>
 	<module file="custom/gov-lgu-gensan.jar" version="1.2"/>

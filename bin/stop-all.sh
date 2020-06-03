@@ -12,6 +12,9 @@ docker-compose down
 cd $BASE_DIR/etracs
 docker-compose down
 
+cd $BASE_DIR/download
+docker-compose down
+
 cd $BASE_DIR/gdx-client
 docker-compose down
 

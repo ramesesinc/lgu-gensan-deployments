@@ -1,6 +1,6 @@
 #!/bin/sh
 RUN_DIR=`pwd`
-cd .. 
+cd ..
 BASE_DIR=`pwd`
 
 docker system prune -f
@@ -14,6 +14,9 @@ docker-compose up -d
 cd $BASE_DIR/etracs
 docker-compose up -d
 sleep 2
+
+cd $BASE_DIR/download
+docker-compose up -d
 
 cd $BASE_DIR/gdx-client
 docker-compose up -d

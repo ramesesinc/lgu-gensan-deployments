@@ -8,3 +8,5 @@ Thumbs.db
 updates-dev.xml
 docker-compose-test.yml
 *.mp4
+download/node/resources/downloads/*.xml
+download/node/resources/downloads/**/*.xml

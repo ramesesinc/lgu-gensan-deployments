@@ -1,6 +1,6 @@
 app: 
   env:
-    "app.title" : "ETRACS 2.5 build 05 20200603 (CITY OF GENERAL SANTOS)"
+    "app.title" : "ETRACS 2.5 build 05 20200605 (CITY OF GENERAL SANTOS)"
     "app.host" : "${app_server_ip}:8070"
     "app.cluster" : "osiris3"
     "app.context" : "etracs25"
@@ -58,7 +58,7 @@ app:
     # treasury
     - { order: 220, version: 2.51, file: "modules/treasury/rameses-treasury-common.jar" }
     - { order: 221, version: 2.51, file: "modules/treasury/rameses-gov-depositslip.jar" }
-    - { order: 222, version: 2.51, file: "modules/treasury/rameses-gov-treasury.jar" }
+    - { order: 222, version: 2.52, file: "modules/treasury/rameses-gov-treasury.jar" }
     - { order: 223, version: 2.51, file: "modules/treasury/rameses-gov-treasury-report.jar" }
     - { order: 224, version: 2.51, file: "modules/treasury/rameses-gov-treasury-tool.jar" }
     # epayment

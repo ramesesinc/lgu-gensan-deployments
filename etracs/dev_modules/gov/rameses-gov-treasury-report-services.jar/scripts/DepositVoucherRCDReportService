@@ -59,7 +59,7 @@ class DepositVoucherRCDReportService {
 
 		result.remittances = rcd_em.getRemittances( p ); 
 		result.amount = result.remittances.sum{ it.amount } 
-		result.amount = (result.amount ? result.amout : 0.0); 
+		result.amount = (result.amount ? result.amount : 0.0); 
 		result.amountinwords = numSvc.doubleToWords( result.amount ).toUpperCase() + " PESOS"; 
 
 		if ( templateid == 'b' ) {
@@ -108,6 +108,7 @@ class DepositVoucherRCDReportService {
 
 		result.remittances = rcd_em.getRemittancesByBankAcct( p ); 
 		result.amount = result.remittances.sum{ it.amount } 
+		result.amount  = (result.amount ? result.amount : 0.0);
 		result.amountinwords = numSvc.doubleToWords( result.amount ).toUpperCase() + " PESOS"; 
 
 		def templateid = param.template?.objid; 

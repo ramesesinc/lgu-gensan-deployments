@@ -1,6 +1,6 @@
 app: 
   env:
-    "app.title" : "ETRACS 2.5 build 05 20200605 (CITY OF GENERAL SANTOS)"
+    "app.title" : "ETRACS 2.5 build 05 20200609 (CITY OF GENERAL SANTOS)"
     "app.host" : "${app_server_ip}:8070"
     "app.cluster" : "osiris3"
     "app.context" : "etracs25"

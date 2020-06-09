@@ -1,6 +1,6 @@
 app: 
   env:
-    "app.title" : "ETRACS 2.5 build 05 20200605 (CITY OF GENERAL SANTOS)"
+    "app.title" : "ETRACS 2.5 build 05 20200609 (CITY OF GENERAL SANTOS)"
     "app.host" : "${app_server_ip}:8070"
     "app.cluster" : "osiris3"
     "app.context" : "etracs25"
@@ -65,12 +65,12 @@ app:
     - { order: 230, version: 2.51, file: "modules/epayment/rameses-gov-epayment.jar" }
     - { order: 231, version: 2.51, file: "modules/epayment/rameses-gov-epayment-report.jar" }
     # rptis
-    - { order: 240, version: 2.51, file: "modules/rptis/rameses-gov-etracs-rptis-landtax.jar" }
-    - { order: 241, version: 2.52, file: "modules/rptis/rameses-gov-etracs-rptis-landtax-report.jar" }
-    - { order: 242, version: 2.51, file: "modules/rptis/rameses-gov-etracs-rptis.jar" }
-    - { order: 243, version: 2.51, file: "modules/rptis/rameses-gov-etracs-rptis-report.jar" }
-    - { order: 244, version: 2.51, file: "modules/rptis/rameses-gov-etracs-rptis-transmittal.jar" }
-    - { order: 245, version: 2.51, file: "modules/rptis/rameses-gov-etracs-rptis-city.jar" }
+    - { order: 240, version: 2.52, file: "modules/rptis/rameses-gov-etracs-rptis-landtax.jar" }
+    - { order: 241, version: 2.53, file: "modules/rptis/rameses-gov-etracs-rptis-landtax-report.jar" }
+    - { order: 242, version: 2.52, file: "modules/rptis/rameses-gov-etracs-rptis.jar" }
+    - { order: 243, version: 2.52, file: "modules/rptis/rameses-gov-etracs-rptis-report.jar" }
+    - { order: 244, version: 2.52, file: "modules/rptis/rameses-gov-etracs-rptis-transmittal.jar" }
+    - { order: 245, version: 2.52, file: "modules/rptis/rameses-gov-etracs-rptis-city.jar" }
     # bpls
     - { order: 250, version: 2.51, file: "modules/bpls/rameses-gov-etracs-bpls.jar" } 
     - { order: 251, version: 2.51, file: "modules/bpls/rameses-gov-etracs-bpls-ceo.jar" } 

@@ -24,6 +24,8 @@ services:
       - ./datasources:/services/datasources
       - ./modules:/apps/etracs25/modules
 
+      - ../_custom/module-server:/apps/etracs25/modules/ext/lgu
+
       - ./dev_modules/gov:/gov
       - ./dev_modules/gov/etracs__gov.conf:/apps/etracs25/modules.conf.d/etracs__gov.conf
 
@@ -32,3 +34,6 @@ services:
 
       - ./dev_modules/bpls:/bpls
       - ./dev_modules/bpls/etracs_bpls.conf:/apps/etracs25/modules.conf.d/etracs_bpls.conf
+
+      - ./dev_modules/rameses-enterprise-admin-services.jar:/services/modules/01-rameses-enterprise-admin-services.jar
+      - ./dev_modules/rameses-enterprise-financial-services.jar:/services/modules/rameses-enterprise-financial-services.jar

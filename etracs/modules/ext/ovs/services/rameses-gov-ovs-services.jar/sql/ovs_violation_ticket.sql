@@ -1,10 +1,3 @@
-[getViolations]
-SELECT
-v2.*
-FROM ovs_violation_ticket v1
-INNER JOIN ovs_violation v2 on v1.violationid = v2.objid
-WHERE parentid = $P{objid}
-
 [getViolationsPerTicket]
 SELECT
 v.*,
@@ -13,13 +6,6 @@ FROM ovs_violation_ticket_entry vte
 INNER JOIN ovs_violation v ON vte.violationid = v.objid
 WHERE vte.parentid = $P{objid}
 
-[findVehiclePerTicket]
-SELECT
-v.*,
-vtv.*
-FROM ovs_violation_ticket_vehicle vtv
-INNER JOIN ovs_vehicle v ON vtv.vehicleid = v.objid 
-WHERE vtv.parentid = $P{objid}
 
 [getViolationTicketsByPaymentRefid]
 select distinct 

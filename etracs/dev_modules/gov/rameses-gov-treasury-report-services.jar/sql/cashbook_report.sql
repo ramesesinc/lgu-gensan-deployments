@@ -220,7 +220,7 @@ from (
 	select 
 		0 as idxno, t.refdate, t.controlid, t.formno, min(t.series) as minseries, min(t.series) as maxseries, 
 		min((case when t.formno = '51' then 'VARIOUS TAXES AND FEES' else t.af_title end)) as particulars,
-		min(concat('*** VOIDED - AF ', t.formno, '#', t.refno,' ***')) as refno, 
+		min(concat('*** VOIDED - AF ', t.formno, '#', t.refno,' ***')) as refno, 0 as unremitted, 
 		-sum(t.dr) as dr, -sum(t.cr) as cr, min(t.sortdate) as sortdate 
 	from ( 
 		select 
@@ -260,12 +260,13 @@ from (
 	select 
 		1 as idxno, refdate, controlid, formno, min(series) as minseries, max(series) as maxseries, 
 		(case when formno = '51' then 'VARIOUS TAXES AND FEES' else af_title end) as particulars, 
-		concat('AF ', formno, '#', min(refno), '-', max(refno)) as refno, 
+		concat('AF ', formno, '#', min(refno), '-', max(refno)) as refno, unremitted, 
 		sum(dr) as dr, 0.0 as cr, min(sortdate) as sortdate 
 	from ( 
 		select 
 			c.refdate, c.controlid, c.formno, c.series, 
-			af.title as af_title, c.refno, c.dr, c.cr, c.sortdate 
+			af.title as af_title, c.refno, c.dr, c.cr, c.sortdate, 
+			(case when c.remittanceid is null then 1 else 0 end) as unremitted 
 		from vw_cashbook_cashreceipt c  
 			inner join af on af.objid = c.formno 
 		where c.refdate >= $P{fromdate} 
@@ -276,7 +277,8 @@ from (
 		union all 
 		select 
 			c.refdate, c.controlid, c.formno, c.series, 
-			af.title as af_title, c.refno, -c.dr as dr, c.cr, c.sortdate 
+			af.title as af_title, c.refno, -c.dr as dr, c.cr, c.sortdate, 
+			(case when c.remittanceid is null then 1 else 0 end) as unremitted 
 		from vw_cashbook_cashreceipt_share c  
 			inner join af on af.objid = c.formno 
 		where c.refdate >= $P{fromdate} 
@@ -287,7 +289,8 @@ from (
 		union all 
 		select 
 			c.refdate, c.controlid, c.formno, c.series, 
-			af.title as af_title, c.refno, c.dr, c.cr, c.sortdate 
+			af.title as af_title, c.refno, c.dr, c.cr, c.sortdate, 
+			(case when c.remittanceid is null then 1 else 0 end) as unremitted 
 		from vw_cashbook_cashreceipt_share_payable c  
 			inner join af on af.objid = c.formno 
 		where c.refdate >= $P{fromdate} 
@@ -296,14 +299,14 @@ from (
 			and c.fundid in (${fundfilter}) 
 			and af.formtype = 'serial' 
 	)t0 
-	group by refdate, formno, controlid, 
+	group by refdate, formno, controlid, unremitted, 
 		(case when formno = '51' then 'VARIOUS TAXES AND FEES' else af_title end) 
 
 	union all 
 
 	select 
 		1 as idxno, t.refdate, null as controlid, null as formno, null as minseries, null as maxseries, 
-		concat('REMITTANCE - ', t.liquidatingofficer_name) as particulars, t.refno, 
+		concat('REMITTANCE - ', t.liquidatingofficer_name) as particulars, t.refno, 0 as unremitted, 
 		sum(t.dr) as dr, sum(t.cr) as cr, min(t.sortdate) as sortdate  
 	from ( 
 		select 
@@ -331,7 +334,7 @@ from (
 
 	select 
 		1 as idxno, t.refdate, null as controlid, null as formno, null as minseries, null as maxseries, 
-		concat('REMITTANCE - ', t.liquidatingofficer_name) as particulars, t.refno, 
+		concat('REMITTANCE - ', t.liquidatingofficer_name) as particulars, t.refno, 0 as unremitted, 
 		-sum(t.dr) as dr, -sum(t.cr) as cr, min(t.sortdate) as sortdate  
 	from ( 
 		select r.refdate, r.refno, r.liquidatingofficer_name, r.dr, r.cr, r.sortdate 
@@ -357,7 +360,7 @@ from (
 
 	select 
 		1 as idxno, t.refdate, null as controlid, null as formno, null as minseries, null as maxseries, 
-		concat('REMITTANCE - ', t.liquidatingofficer_name) as particulars, t.refno, 
+		concat('REMITTANCE - ', t.liquidatingofficer_name) as particulars, t.refno, 0 as unremitted, 
 		sum(t.dr) as dr, sum(t.cr) as cr, min(t.sortdate) as sortdate  
 	from ( 
 		select r.refdate, r.refno, r.liquidatingofficer_name, r.dr, r.cr, r.sortdate 
@@ -382,7 +385,7 @@ from (
 	select 
 		1 as idxno, t.refdate, t.controlid, t.formno, min(t.series) as minseries, min(t.series) as maxseries, 
 		min((case when t.formno = '51' then 'VARIOUS TAXES AND FEES' else t.af_title end)) as particulars,
-		min(concat('*** VOIDED - AF ', t.formno, '#', t.refno,' ***')) as refno, 
+		min(concat('*** VOIDED - AF ', t.formno, '#', t.refno,' ***')) as refno, 0 as unremitted, 
 		-sum(t.dr) as dr, -sum(t.cr) as cr, min(t.sortdate) as sortdate 
 	from ( 
 		select 

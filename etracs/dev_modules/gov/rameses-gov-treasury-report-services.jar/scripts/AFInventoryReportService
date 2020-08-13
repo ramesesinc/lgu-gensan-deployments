@@ -44,6 +44,7 @@ class AFInventoryReportService {
 		def serials = []; 
 		def nonserials = []; 
 		list.eachWithIndex{ o,idx-> 
+			o.stub = 1; 
 			o.lineno = idx; 
 			o.formno = o.afid;
 
@@ -99,19 +100,22 @@ class AFInventoryReportService {
 				def stubs = vv.findAll{( it.qtyreceived > 0 )} 
 				fo.qtyreceived = stubs.sum{ it.qtyreceived } 
 				fo.qtyreceived = (fo.qtyreceived ? fo.qtyreceived : 0); 
-				fo.qtyreceivedcost = stubs.collect{ it.controlid }.unique().size() * fo.costperstub;
+				fo.qtyreceivedstub = stubs.collect{ it.controlid }.unique().size(); 
+				fo.qtyreceivedcost = fo.qtyreceivedstub * fo.costperstub;
 				stubs.clear();
 
 				stubs = vv.findAll{( it.qtybegin > 0 )} 
 				fo.qtybegin = stubs.sum{ it.qtybegin } 
 				fo.qtybegin = (fo.qtybegin ? fo.qtybegin : 0); 
-				fo.qtybegincost = stubs.collect{ it.controlid }.unique().size() * fo.costperstub;
+				fo.qtybeginstub = stubs.collect{ it.controlid }.unique().size(); 
+				fo.qtybegincost = fo.qtybeginstub * fo.costperstub;
 				stubs.clear();
 
 				stubs = vv.findAll{( it.qtyissued > 0 )}
 				fo.qtyissued = stubs.sum{ it.qtyissued } 
-				fo.qtyissued = (fo.qtyissued ? fo.qtyissued : 0); 				
-				fo.qtyissuedcost = stubs.collect{ it.controlid }.unique().size() * fo.costperstub;
+				fo.qtyissued = (fo.qtyissued ? fo.qtyissued : 0); 
+				fo.qtyissuedstub = stubs.collect{ it.controlid }.unique().size(); 
+				fo.qtyissuedcost = fo.qtyissuedstub * fo.costperstub;
 				stubs.clear();
 
 				fo.gaincost = vv.findAll{( it.gaincost > 0 )}.sum{ it.gaincost } 
@@ -142,6 +146,7 @@ class AFInventoryReportService {
 					fo.qtyending = fo.endingendseries - fo.endingstartseries+1; 
 				} 
 				fo.qtyendingcost = (fo.qtyreceivedcost + fo.qtybegincost) - fo.qtyissuedcost; 
+				fo.qtyendingstub = (fo.qtyreceivedstub + fo.qtybeginstub) - fo.qtyissuedstub; 
 
 				if ( fo.qtyreceived > 0 ) fo.receivedseries = formatSeries(fo.receivedstartseries, fo.receivedendseries, fo.serieslength).toString(); 
 				if ( fo.qtybegin > 0 ) fo.beginseries = formatSeries(fo.beginstartseries, fo.beginendseries, fo.serieslength).toString(); 
@@ -153,15 +158,76 @@ class AFInventoryReportService {
 				if ( fo.qtyissued == 0 ) fo.qtyissued = null; 
 				if ( fo.qtyending == 0 ) fo.qtyending = null; 
 				if ( fo.qtyreceivedcost == 0 ) fo.qtyreceivedcost = null; 
+				if ( fo.qtyreceivedstub == 0 ) fo.qtyreceivedstub = null; 
 				if ( fo.qtybegincost == 0 ) fo.qtybegincost = null; 
+				if ( fo.qtybeginstub == 0 ) fo.qtybeginstub = null; 
 				if ( fo.qtyissuedcost == 0 ) fo.qtyissuedcost = null; 
+				if ( fo.qtyissuedstub == 0 ) fo.qtyissuedstub = null; 
 				if ( fo.qtyendingcost == 0 ) fo.qtyendingcost = null; 
+				if ( fo.qtyendingstub == 0 ) fo.qtyendingstub = null; 
 				if ( fo.costperstub == 0 ) fo.costperstub = null; 
 
 				results << fo; 
 			} 
 		} 
 		serials.clear(); 
+
+		nonserials.groupBy{[ formno: it.formno, denomination: it.denomination, cost: it.cost ]}.each{ k,v-> 
+			def fo = [:]; 
+			fo.putAll( v.first() ); 
+			fo.receivedstartseries = fo.receivedendseries = null; 
+			fo.beginstartseries = fo.beginendseries = null; 
+			fo.issuedstartseries = fo.issuedendseries = null; 
+			fo.endingstartseries = fo.endingendseries = null; 
+			fo.qtyreceived = fo.qtybegin = fo.qtyissued = fo.qtyending = fo.qtycancelled = 0; 
+
+			fo.costperstub = (k.cost ? k.cost : 0.0); 
+
+			def vv = v.findAll{( it.qtyreceived && it.qtyreceived > 0 )}
+			fo.qtyreceived = vv.sum{( it.qtyreceived ? it.qtyreceived : 0 )} 
+			fo.qtyreceivedcost = vv.size() * fo.costperstub; 
+			fo.qtyreceivedstub = vv.size(); 
+			vv.clear(); 
+
+			vv = v.findAll{( it.qtybegin && it.qtybegin > 0 )}
+			fo.qtybegin = vv.sum{( it.qtybegin ? it.qtybegin : 0 )} 
+			fo.qtybegincost = vv.size() * fo.costperstub; 
+			fo.qtybeginstub = vv.size(); 
+			vv.clear(); 
+
+			vv = v.findAll{( it.qtyissued && it.qtyissued > 0 )}
+			fo.qtyissued = vv.sum{( it.qtyissued ? it.qtyissued : 0 )} 
+			fo.qtyissuedcost = vv.size() * fo.costperstub; 
+			fo.qtyissuedstub = vv.size(); 
+			vv.clear(); 
+
+			fo.qtycancelled = v.sum{( it.qtycancelled ? it.qtycancelled : 0 )} 
+
+			fo.qtyreceived = (fo.qtyreceived ? fo.qtyreceived : 0); 
+			fo.qtybegin = (fo.qtybegin ? fo.qtybegin : 0); 
+			fo.qtyissued = (fo.qtyissued ? fo.qtyissued : 0); 
+			fo.qtycancelled = (fo.qtycancelled ? fo.qtycancelled : 0); 
+			fo.qtyending = (fo.qtybegin + fo.qtyreceived) - fo.qtyissued; 
+			fo.qtyendingstub = (fo.qtybeginstub + fo.qtyreceivedstub) - fo.qtyissuedstub; 
+			fo.qtyendingcost = fo.qtyendingstub * fo.costperstub; 
+
+			if ( fo.qtyreceived == 0 ) fo.qtyreceived = null; 
+			if ( fo.qtybegin == 0 ) fo.qtybegin = null; 
+			if ( fo.qtyissued == 0 ) fo.qtyissued = null; 
+			if ( fo.qtycancelled == 0 ) fo.qtycancelled = null; 
+			if ( fo.qtyending == 0 ) fo.qtyending = null; 
+			if ( fo.qtyreceivedcost == 0 ) fo.qtyreceivedcost = null; 
+			if ( fo.qtyreceivedstub == 0 ) fo.qtyreceivedstub = null; 
+			if ( fo.qtybegincost == 0 ) fo.qtybegincost = null; 
+			if ( fo.qtybeginstub == 0 ) fo.qtybeginstub = null; 
+			if ( fo.qtyissuedcost == 0 ) fo.qtyissuedcost = null; 
+			if ( fo.qtyissuedstub == 0 ) fo.qtyissuedstub = null; 
+			if ( fo.qtyendingcost == 0 ) fo.qtyendingcost = null; 
+			if ( fo.qtyendingstub == 0 ) fo.qtyendingstub = null; 
+			if ( fo.costperstub == 0 ) fo.costperstub = null; 
+
+			results << fo; 
+		} 
 		nonserials.clear(); 
 
 		results.sort{ it.lineno } 

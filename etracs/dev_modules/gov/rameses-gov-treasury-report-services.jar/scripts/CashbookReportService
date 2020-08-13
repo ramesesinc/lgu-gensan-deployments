@@ -91,6 +91,7 @@ class CashbookReportService {
 		else if ( params.fund ) {
 			params.fundfilter = "'"+ params.fund.objid +"'"; 
 			params.fundtitle = params.fund.title; 
+			params.fundgroupname = params.fund.group?.title; 
 		} 
 		else {
 			params.fundfilter = "''"; 

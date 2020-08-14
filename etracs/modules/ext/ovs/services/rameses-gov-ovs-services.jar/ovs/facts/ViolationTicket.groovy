@@ -8,4 +8,5 @@ class ViolationTicket {
 	Date dtcreated;
 	double amount;
 	
+	String violatortype;
 }

@@ -12,6 +12,9 @@ class ViolationTicketService {
     @Service("AssessmentRuleService")
     def assmtSvc;
 
+    @Service("EntityFinderService")
+    def entitySvc;
+
 	@ProxyMethod
 	public def getViolationInfo(def o) {
 		if( !o.violationid ) throw new Exception("Violation id is required");
@@ -20,7 +23,14 @@ class ViolationTicketService {
         def pp = [violationid:o.violationid,"parent.violator.objid":o.violatorid];
 		def z = ove.find(pp).select( 'violationcount:{COUNT(*)}' ).first(); 
         
-        def violation = new ViolationTicket( violation: o.violationid, violationcount: z.violationcount + 1 );
+        def violator = entitySvc.find([ objid: o.violatorid ]);
+
+        def violation = new ViolationTicket( 
+            violation     : o.violationid, 
+            violationcount: z.violationcount + 1, 
+            violatortype  : violator?.type
+        );
+        
         def fb = new FactBuilder();
         fb.facts << violation;
 
@@ -47,6 +57,4 @@ class ViolationTicketService {
             throw new Exception("There are no rules found for this entry");    
 		return item;
 	}
-	
-
 }

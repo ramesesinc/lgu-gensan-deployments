@@ -74,4 +74,4 @@ app:
     # ctc
     - { order: 300, version: 2.51, file: "modules/ctc/rameses-gov-etracs-ctc.jar" }
     # ovs
-    - { order: 310, version: 1.02, file: "modules/ovs/rameses-gov-ovs.jar" }
+    - { order: 310, version: 1.03, file: "modules/ovs/rameses-gov-ovs.jar" }

@@ -129,7 +129,7 @@ class CashbookReportService {
 		data.begbaldr = data.begbalcr = 0.0; 
 		if ( balinfo ) {
 			balinfo.refid = 'begin_balance'; 
-			balinfo.reftype = '** BEGIN BALANCE **'; 
+			balinfo.reftype = '** BEGINNING BALANCE **'; 
 			balinfo.particulars = balinfo.reftype;
 
 			boolean allow_begbal = false; 

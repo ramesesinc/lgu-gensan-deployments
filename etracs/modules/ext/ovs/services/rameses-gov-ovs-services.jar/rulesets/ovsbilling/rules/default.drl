@@ -1,5 +1,0 @@
-package ovsbilling;
-
-import com.rameses.rules.common.*;
-
-global RuleAction action;

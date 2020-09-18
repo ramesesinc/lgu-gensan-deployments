@@ -20,13 +20,19 @@ services:
     volumes:
       - ./nginx/_src:/_src
       - ./nginx/_src/conf.d:/etc/nginx/conf.d
-      - ./nginx/resources:/resources
-      - ../_custom/static_files:/resources/static_files
+      - ./nginx/resources:/www
+      - ./node/resources/downloads:/www/downloads
+
+      - ../_custom/static_files:/www/static_files
+      - ../_custom/module-client:/www/downloads/modules/custom
+
+      - ../entity/client:/www/downloads/modules/entity:ro
+
     command: ["sh", "/_src/scripts/run.sh" ]
 
 
   node-download-server:
-    image: ramesesinc/node-download-server:0.0.1
+    image: ramesesinc/node-download-server:0.0.2
     container_name: node-download-server
     restart: always
     logging:
@@ -44,5 +50,8 @@ services:
     volumes:
       - ./node/resources:/apps/server/public/resources
       - ../_res/env.conf:/apps/server/public/resources/res.conf
+
       - ../_custom/env.conf:/apps/server/public/resources/custom.conf
       - ../_custom/module-client:/apps/server/public/resources/downloads/modules/custom
+
+      - ../entity/client:/apps/server/public/resources/downloads/modules/entity

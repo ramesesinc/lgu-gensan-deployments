@@ -85,11 +85,13 @@ class CashbookReportService {
 		if ( funds && (funds instanceof java.util.List)) {
 			params.fundfilter = funds.collect{( "'"+ it.objid +"'" )}.join(","); 
 			params.fundtitle = funds.collect{ it.title }.join(", ");
+			params.fundgroupname = funds.collect{ it.group?.title }.findAll{( it )}.unique().join(', '); 
 			funds.clear(); 
 		} 
 		else if ( params.fund ) {
 			params.fundfilter = "'"+ params.fund.objid +"'"; 
 			params.fundtitle = params.fund.title; 
+			params.fundgroupname = params.fund.group?.title; 
 		} 
 		else {
 			params.fundfilter = "''"; 
@@ -160,6 +162,10 @@ class CashbookReportService {
 		]; 
 		if ( params.fundgroup?.objid ) {
 			data.info.FUNDNAME = params.fundgroup.objid.toString() +' GROUP'; 
+			data.info.FUNDGROUPNAME = params.fundgroup.objid; 
+		}
+		else {
+			data.info.FUNDGROUPNAME = params.fundgroupname; 
 		}
 
 		if ( params.period?.code == 'daily' ) { 

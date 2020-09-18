@@ -26,7 +26,8 @@ services:
       - ../_custom/static_files:/www/static_files
       - ../_custom/module-client:/www/downloads/modules/custom
 
-      - ../entity/client:/www/downloads/modules/entity:ro
+      - ../entity/client:/www/downloads/modules/entity
+      - ../market/client:/www/downloads/modules/market
 
     command: ["sh", "/_src/scripts/run.sh" ]
 
@@ -55,3 +56,4 @@ services:
       - ../_custom/module-client:/apps/server/public/resources/downloads/modules/custom
 
       - ../entity/client:/apps/server/public/resources/downloads/modules/entity
+      - ../market/client:/apps/server/public/resources/downloads/modules/market

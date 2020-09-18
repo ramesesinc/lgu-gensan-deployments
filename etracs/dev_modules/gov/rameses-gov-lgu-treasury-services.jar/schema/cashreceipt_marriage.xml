@@ -11,7 +11,7 @@
 		<field name="brideagemonth" />
 		<field name="registerno" required="true" />
 		<field name="attachments" required="true" />
-		<field name="lcrofficer" required="true" />
-		<field name="lcrofficertitle" required="true" />
+		<field name="lcrofficer" />
+		<field name="lcrofficertitle" />
 	</element>
 </schema>

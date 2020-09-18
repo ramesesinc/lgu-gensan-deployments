@@ -95,17 +95,22 @@ class MarketBillingService {
 			if(!txntypes.contains("OTHER")) include_other = false;
 		}
 
-		if(o.billdate) o.todate = o.billdate;
+		if ( o.billdate ) o.billdate = o.billdate.toString().split(' ')[0]; 
+
+		if ( !o.todate ) o.todate = o.billdate; 
 
 		def df = new java.text.SimpleDateFormat("yyyy-MM-dd");
+		if ( o.billdate ) o.billdate = df.parse( o.billdate.toString() );  
+
 		def todate = o.todate;
-		if(todate) {
+		if ( todate ) {
 			todate = df.parse( todate );
 		}	
 		else {
 			todate = df.parse( df.format( dateSvc.getServerDate() ));
 		}
-		
+
+
 		def acct = acctEm.find( [objid: o.acctid ] ).first();
 		if(!acct) throw new Exception("Account not found");
 		def unit = unitEm.find([objid: acct.unit.objid ] ).first();
@@ -127,6 +132,8 @@ class MarketBillingService {
 
 		//run the rules
 		def req = [rulename: 'marketbilling', params: [acctid: acct.objid ] ];
+		if ( o.billdate ) req.params.billdate = o.billdate;
+
 		req.factBuilder = factBuilder;
 		if( o.include_items ) req.include_items = true;
 		def res = billingRuleSvc.execute( req );

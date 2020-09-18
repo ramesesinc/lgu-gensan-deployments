@@ -22,7 +22,7 @@ services:
       - "8074:8070"
 
     volumes:
-      - ../_res/connections:/apps/server/services/apps/enterprise/connections
+      - ../_res/connections:/apps/server/services/apps/enterprise/connections/ext
       - ./mainds:/apps/server/services/datasources/mainds
       - ./server/rameses-gov-etracs-market-services.jar:/apps/server/services/apps/enterprise/modules/rameses-gov-etracs-market-services.jar
 

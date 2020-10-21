@@ -426,6 +426,9 @@ class RPTReceiptService
 			info.lastqtrpaid = ledger.toqtr 
 		}
 		em_rptledger.where('objid = :objid and lastyearpaid <= :lastyearpaid', info).update(info)
+		if (info.lastqtrpaid == 4) {
+			em_rptledger_item.find([parentid: info.objid, year: info.lastyearpaid]).delete();
+		}
 	}
 
 	def createLedgerPayment(receipt, ledger){

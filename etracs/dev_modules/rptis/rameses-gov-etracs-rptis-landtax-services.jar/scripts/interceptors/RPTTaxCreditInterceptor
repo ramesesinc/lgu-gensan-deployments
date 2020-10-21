@@ -36,6 +36,7 @@ class RPTTaxCreditInterceptor
     @After(pattern='RPTTaxCreditService.(approve|apply)') 
     public void logActions( evt ) {
         def credit = evt.result 
+		if (!credit) return
         if ('apply' == evt.methodName) {
 			logSvc.logA( evt.methodName, 'rpttaxcredit', credit.objid, 'Credited Amount: ' + credit._amtcredited)
     	} else {

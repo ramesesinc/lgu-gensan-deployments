@@ -5,4 +5,4 @@ app:
     "market.app.context" : "enterprise"
 
   modules:
-    - { order: 400, version: 1.00, file: "modules/market/rameses-gov-etracs-market.jar" }
+    - { order: 400, version: 1.01, file: "modules/market/rameses-gov-etracs-market.jar" }

@@ -226,13 +226,18 @@ public class RPTBillingRuleService
 			return true 
 		}
 
-		if (payments && payments.toqtr.max()+1 < bill.cqtr){
+		def maxqtr = payments.toqtr.max();
+		if (maxqtr == null) maxqtr = 4;
+
+		if (payments &&  maxqtr+1 < bill.cqtr){
 			//miss payment previous qtr
 			return true 
 		}
 
 		def missedpayment = false 
 		payments.each{pmt -> 
+			if (pmt.fromqtr == null) pmt.fromqtr = 1
+			if (pmt.toqtr == null) pmt.toqtr = 4
 			pmt.fromqtr.upto(pmt.toqtr){qtr->
 				def qtrenddate = dtSvc.getQtrEndDate((Integer)qtr, bill.cy) + 1 
 				if (pmt.receiptdate > qtrenddate){

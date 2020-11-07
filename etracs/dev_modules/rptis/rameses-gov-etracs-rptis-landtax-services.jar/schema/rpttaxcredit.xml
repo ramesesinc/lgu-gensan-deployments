@@ -11,6 +11,7 @@
         <field name="refdate" required="true" caption="Ref Date"/>
         <field name="amount" required="true" type="decimal" caption="Amount" />
         <field name="amtapplied" required="true" type="decimal" caption="Applied" />
+        <field name="discapplied" type="decimal" caption="Credited Discount" />
         <field name="rptledger_objid" required="true" />
         <field name="srcledger_objid" />
         <field name="remarks" />
@@ -18,6 +19,7 @@
         <field name="approvedby_name"/>
         <field name="approvedby_title"/>
         <field name="balance" expr="amount - amtapplied" caption="Balance" />
+        <complex name="info" serializer="default" required="false" />
         <complex name="rptledger" ref="rptledger" jointype="many-to-one"
             includefields="tdno,fullpin,owner.name,taxpayer.*">
             <key field="rptledger_objid" target="objid"/>

@@ -16,7 +16,6 @@ class RPTReceiptPostShareInterceptor
 		if (!param.ids) return
 
 		param.filter = "where r.objid IN ('"+ param.ids.join("','") +"')"; 
-		println 'params => ' + param
 		def pendingReceipts = em.findPendingReceiptForPosting(param)
 		if (pendingReceipts.cnt > 0) {
 			def msg = 'There '

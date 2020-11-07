@@ -12,6 +12,9 @@ class RPTTaxCreditService
     @DataContext('rpttaxcredit')
     def em_credit
 
+    @DataContext('batch_rpttaxcredit')
+    def em_batch
+
     @DataContext('rptledger')
     def em_rptledger
 
@@ -48,16 +51,19 @@ class RPTTaxCreditService
     def OVER_PAYMENT = 'OVER_PAYMENT'
     def DOUBLE_PAYMENT = 'DOUBLE_PAYMENT'
     def WRONG_LEDGER = 'WRONG_LEDGER'
+    def TAX_ADJUSTMENT = 'TAX_ADJUSTMENT'
 
     def TYPE_CASHRECEIPT = 'cashreceipt'
     def TYPE_CREDIT_ADVISE = 'credit_advise'
+    def TYPE_ORDINANCE = 'tax_adjustment'
 
     @ProxyMethod
     public def getCreditTypes() {
         return [
             OVER_PAYMENT, 
             DOUBLE_PAYMENT, 
-            WRONG_LEDGER
+            WRONG_LEDGER,
+            TAX_ADJUSTMENT,
         ]
     }
 
@@ -65,10 +71,16 @@ class RPTTaxCreditService
     public def getReferenceTypes(type) {
         def types = [
             TYPE_CASHRECEIPT, 
-            TYPE_CREDIT_ADVISE
+            TYPE_CREDIT_ADVISE,
+            TYPE_ORDINANCE
         ]
 
         if (WRONG_LEDGER.equalsIgnoreCase(type)) {
+            types.remove(TYPE_CREDIT_ADVISE)
+            types.remove(TYPE_ORDINANCE)
+        }
+        if (TAX_ADJUSTMENT.equalsIgnoreCase(type)) {
+            types.remove(TYPE_CASHRECEIPT)
             types.remove(TYPE_CREDIT_ADVISE)
         }
         return types
@@ -79,6 +91,9 @@ class RPTTaxCreditService
         credit.txnno = getNextSeries()
         credit.txndate = dtSvc.serverDate
         credit.amtapplied = 0
+        if (credit.type == TAX_ADJUSTMENT) {
+            buildTaxAdjustmentCreditInfo(credit)
+        }
         validateCreate(credit)
     }
 
@@ -123,7 +138,11 @@ class RPTTaxCreditService
             throw new Exception('Credit has already been fully applied.')
         }
 
-        generateBilling(credit)
+        try {
+            generateBilling(credit)
+        } catch(e) {
+            return credit;
+        }
             
         switch (credit.type) {
             case 'WRONG_LEDGER':
@@ -133,9 +152,12 @@ class RPTTaxCreditService
             case 'DOUBLE_PAYMENT' : 
                 postOverPayment(credit)
                 break
+            case 'TAX_ADJUSTMENT' : 
+                postTaxAdjustment(credit)
+                break;
         }
 
-        if (credit.amtapplied >= credit.amount) {
+        if (credit.amtapplied >= credit.amount || credit.amount - credit.amtapplied < 0.05) {
             credit.state = STATE_CLOSED
             credit.amtapplied = credit.amount
         }
@@ -159,6 +181,73 @@ class RPTTaxCreditService
         }
     }
 
+    @ProxyMethod
+    public def getReportData(params) {
+        def credit = em_credit.read(params)
+        if (!credit) throw new Exception("Tax Credit does not exist or has already been deleted.")
+        credit.rptledger = em_rptledger.find([objid: credit.rptledger.objid]).first()
+        credit.items = getCreditItems(credit)
+        return credit
+    }
+
+    def getCreditItems(credit) {
+        def items = []
+
+        //dr items
+        items << [
+            txndate: dtSvc.parse("yyyy-MM-dd", credit.info.creditedyear+"-01-01"),
+            particulars: "BEGINNING BALANCE",
+            dr: credit.info.annualtax,
+        ]
+
+        // cr items
+        def params = [rptledgerid: credit.rptledger.objid, year: credit.info.creditedyear]
+
+        em_credit.getCreditYearPayments(params).each{
+            def period = "";
+            if (it.startqtr != it.endqtr) {
+                period = qtrs[it.startqtr] + " - " + qtrs[it.endqtr] + " quarters"
+            } else {
+                period = qtrs[it.startqtr] + " quarter"
+            } 
+            it.particulars = "OR# " + it.receiptno + " " + period + " payment"
+
+            items << [ txndate: it.txndate, particulars: it.particulars, cr: it.cr ]
+
+            if (it.crdisc > 0) {
+                items << [ 
+                    txndate: it.txndate, 
+                    particulars: period + " Discount", 
+                    cr: it.crdisc 
+                ]
+            }
+        }
+
+        // tax credit
+        items << [
+            txndate: credit.txndate,
+            particulars: credit.remarks,
+            cr: credit.amount
+        ]
+
+        // total availed discounts
+        if (credit.discapplied > 0) {
+            items << [
+                txndate: credit.txndate,
+                particulars: "Availed Discount",
+                dr: credit.discapplied
+            ]
+        }
+
+        return items;
+    }
+
+    def qtrs = [
+        1: "1st",
+        2: "2nd",
+        3: "3rd",
+        4: "4th"
+    ]
 
     def getNextSeries() {
         def lguid = env.ORGID.replaceAll('-','')
@@ -217,13 +306,28 @@ class RPTTaxCreditService
         postRptPayment(credit)
     }
 
+    /* post tax adjustment for years >= creditedyear */
+    void postTaxAdjustment(credit) {
+        def items = credit.remove('postingitems')
+        credit.postingitems = items.findAll{ it.year >= credit.info.creditedyear}
+        credit._hasarrears = items.find{it.year < credit.info.creditedyear}
+        if (!credit.postingitems) return
+        credit.postingitems.each{
+            it.discount = 0.0
+            it.interest = 0.0
+            it.total = it.amount
+        }
+        distributeCredit(credit)
+        postRptPayment(credit)
+    }
+
     void distributeCredit(credit) {
         def credititems = []
         def partialamt = credit.balance
 
         def postingitems = credit.remove('postingitems')
         if (!postingitems) {
-            throw new Exception('Credit posting items must be specified.')
+            throw new Exception('Items to credit must be specified.')
         }
         
         def priorities = postingitems.priority.unique().sort()
@@ -283,6 +387,7 @@ class RPTTaxCreditService
         pmt.paidby = [:]
         pmt.paidby.name = credit.rptledger.taxpayer.name
         pmt.paidby.address = credit.rptledger.taxpayer.address.text
+        if (!pmt.paidby.address) pmt.paidby.address = '-'
         pmt.postedby = env.FULLNAME
         pmt.postedbytitle = env.JOBTITLE
         pmt.dtposted = dtSvc.serverDate
@@ -306,12 +411,15 @@ class RPTTaxCreditService
 
         em_rptledger_item.where('parentid = :objid and amount <= amtpaid', credit.rptledger).delete()
 
-        def fullypaiditems = credit.items.findAll{ !it.partialled }
-        if (fullypaiditems) {
-            def lastitem = fullypaiditems.last()
-            em_rptledger.find([objid: credit.rptledger.objid])
-                        .update([lastyearpaid: lastitem.year, lastqtrpaid: lastitem.qtr])
+        if (!credit._hasarrears) {
+            def fullypaiditems = credit.items.findAll{ !it.partialled }
+            if (fullypaiditems) {
+                def lastitem = fullypaiditems.last()
+                em_rptledger.find([objid: credit.rptledger.objid])
+                            .update([lastyearpaid: lastitem.year, lastqtrpaid: lastitem.qtr])
+            }
         }
+
     }
 
     def calcLastQtrPaid(item) {
@@ -331,6 +439,78 @@ class RPTTaxCreditService
             runningamt = numSvc.round(runningamt + qtrlyamt)
         }
         return qtrpmt 
+    }
+
+
+    @ProxyMethod
+    /* required: rptledger.objid, creditedyear */
+    public def checkTaxCreditPosted(params) {
+        def credits = em_credit.find([rptledger_objid: params.rptledger.objid]).list()
+        def credit = credits.find{ "TAX_ADJUSTMENT".equalsIgnoreCase(it.type) && it.info.creditedyear == params.creditedyear }
+        return credit != null
+    }
+
+    @ProxyMethod
+    /* required: rptledger.objid, creditedyear, rate */
+    public def getCreditInfo(params) {
+        def rptledger = params.rptledger
+        generateCurrentBill(rptledger)
+        
+        // if receivable is available in rptledger_item
+        // then use it otherwise get the it from rptpayment_item
+        def filter = [year: params.creditedyear, rptledgerid: rptledger.objid]
+        def data = em_credit.findTaxDueFromLedgerItem(filter)
+        if (data.taxdue == null || data.taxdue == 0) {
+            data = em_credit.findTaxDueFromPaymentItem(filter)
+        }
+        if (data.taxdue == null || data.taxdue == 0) {
+            throw new Exception("Cannot credit zero amount.")
+        }
+        data.credit = numSvc.round(data.taxdue * params.rate / 100.0)
+        data.discountavailed = em_credit.findDiscountAvailed(filter).discount
+        if (data.discountavailed == null) data.discountavailed = 0.0
+        return data;
+    }
+
+    @ProxyMethod
+    public void closeBatchTaxCredits(batch) {
+        em_credit.revertTaxCredits(batch)
+        em_credit.closeBatchTaxCredits(batch)
+        em_batch.find([objid: batch.objid]).update([state: "CLOSED"])
+    }
+
+    void buildTaxAdjustmentCreditInfo(credit) {
+        if (checkTaxCreditPosted([
+            rptledger: credit.rptledger,
+            creditedyear: credit.info.creditedyear,
+        ])) {
+            throw new Exception("Tax credit could not be created because a tax credit for the year " + credit.info.creditedyear + " has already been posted.")
+        }
+
+        def creditinfo = getCreditInfo([
+            rptledger: credit.rptledger,
+            creditedyear: credit.info.creditedyear,
+            rate: credit.info.rate,
+        ])
+        credit.amount = creditinfo.credit
+        credit.discapplied = creditinfo.discountavailed
+        credit.balance = credit.amount - credit.discapplied
+        credit.amtapplied = 0
+        credit.info = [
+            creditedyear: credit.info.creditedyear,
+            annualtax: creditinfo.taxdue,
+            av: creditinfo.av,
+            rate: credit.info.rate,
+            rateoflevy: creditinfo.rateoflevy,
+        ]
+    }
+
+    void generateCurrentBill(rptledger) {
+        try {
+            billingSvc.generateBillByLedger(rptledger)
+        } catch(Throwable e) {
+            println 'Ignore: ' + e.message
+        }
     }
 }
 

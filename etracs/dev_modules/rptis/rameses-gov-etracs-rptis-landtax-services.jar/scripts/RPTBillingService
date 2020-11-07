@@ -454,7 +454,7 @@ public class RPTBillingService
 			item.qtr = first.qtr 
 			item.originalav = first.rptledgerfaas.assessedvalue 
 			item.taxdifference = first.taxdifference
-			item.period = buildPeriod(bill, list, minyear)
+				item.period =  buildPeriod(bill, list, minyear)
 			item.periodqtrs = buildPeriodQuarters(bill, list, minyear)
 			item.total = 0.0 
 			item.flag = ''
@@ -565,7 +565,7 @@ public class RPTBillingService
         def startqtr = 1
         def endqtr = 4
 
-        if (minyear < bill.rptledger.lastyearpaid ) {
+								if (minyear < bill.rptledger.lastyearpaid ) {
             //taxcredit
             if (firstitem.qtr != null) {
                 startqtr = firstitem.qtr
@@ -585,8 +585,12 @@ public class RPTBillingService
                 startqtr = (bill.rptledger.lastqtrpaid == 4 ? 1 : bill.rptledger.lastqtrpaid + 1)
             } else {
                 startqtr = firstitem.qtr
+																endqtr = firstitem.qtr
             }
-        } 
+        } else if (firstitem.qtr != null) {
+											startqtr = firstitem.qtr
+											endqtr = firstitem.qtr
+								}
         return [startqtr: startqtr, endqtr: endqtr]
     }
 

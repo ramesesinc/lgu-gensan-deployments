@@ -23,6 +23,7 @@ class MarketCashReceiptService {
 	@ProxyMethod
 	public def getBilling(def o ) {
 		o.include_items = true;
+		o.cashreceipt = true; 
 		def m = billingSvc.getBilling( o );
 
 		if( !m.billitems )

@@ -1,0 +1,14 @@
+import com.rameses.annotations.*;
+
+class GenSanRemittanceRCDReportInterceptor {
+	
+	@ActiveDB('gensan_remittance_rcd_report') 
+	def rcd_db; 
+
+	@After( pattern="RemittanceRCDReportService.getReport") 
+	public void afterGetReport( evt ) { 
+		def result = evt.result; 
+		result.collectionsummaries = rcd_db.getCollectionSummaries([ remittanceid: result.objid ]); 
+		result.collectionsummaries.each { it.particulars = it.fundtitle; } 
+	}
+}

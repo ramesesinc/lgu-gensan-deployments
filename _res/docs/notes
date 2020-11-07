@@ -1,0 +1,26 @@
+[Docker App]
+IP  : 172.16.11.111
+User: ctzen
+Pass: c+z3n
+
+[Portainer]
+URL  : http://172.16.11.111:9000
+User : admin
+Pass : p@ssw0rd#
+
+[AD]
+Address : 566882540
+Pass    : !c+42ol8
+
+[GitHub]
+git clone https://github.com/ramesesinc/lgu-gensan-deployments.git
+
+[DockerHub]
+docker pull nginx:latest
+docker pull ramesesinc/node-download-server:0.0.1
+docker pull ramesesinc/queue-server:255.02.002
+docker pull ramesesinc/notification-server:1.0
+docker pull ramesesinc/mail-server:latest
+docker pull ramesesinc/gdx-proxy-server:v001
+docker pull ramesesinc/gdx-client:1.01.003
+docker pull ramesesinc/etracs25-server-city:255.02.007

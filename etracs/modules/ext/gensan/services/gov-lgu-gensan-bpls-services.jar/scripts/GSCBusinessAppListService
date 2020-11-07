@@ -1,0 +1,47 @@
+import com.rameses.annotations.*;
+
+public class GSCBusinessAppListService  {
+
+	@ActiveDB(value="gsc_business_application_tracs", em="tracsdb")
+	def tracs_db;	
+
+	@ProxyMethod
+	public def getColumns( m ) {
+		return [
+			[name:"appyear", caption:"AppYear", width:60, maxWidth:60],
+			[name:"dtfiled", caption:"DateFiled", width:80, maxWidth:80, type:'date', outputFormat:'yyyy-MM-dd'],
+			[name:"apptype", caption:"AppType", width:100, maxWidth:130],
+			[name:"tradename", caption:"TradeName"],
+			[name:"address", caption:"Address"],
+			[name:"ownername", caption:"OwnerName"],
+			[name:"owneraddress", caption:"OwnerAddress"],
+			[name:'migrationstatus', caption:'Status', maxWidth:70, minWidth:70],
+			[name:'objid', caption:'BusinessID', maxWidth:80] 
+		];
+	}
+
+	@ProxyMethod
+	public def getList( param ) { 
+		if (!(param.tradename || param.ownername )) 
+			throw new Exception('Please specify at least one criteria'); 
+
+		def wheres = []; 
+		if ( param.tradename ) {
+			wheres << ''' b.strTradeName like $P{tradename} '''; 
+			param.tradename = param.tradename.toString() + '%'; 
+		} 
+		if ( param.ownername ) {
+			wheres << ''' t.strTaxpayer like $P{ownername} '''; 
+			param.ownername = param.ownername.toString() + '%'; 
+		} 
+
+		param.filter = wheres.join(' AND '); 
+		return tracs_db.getList( param ); 
+	} 
+
+
+	@ProxyMethod 
+	public void reopenForMigration( param ) { 
+		tracs_db.removeCaptureBusiness([ objid: param.objid ]); 
+	} 
+} 

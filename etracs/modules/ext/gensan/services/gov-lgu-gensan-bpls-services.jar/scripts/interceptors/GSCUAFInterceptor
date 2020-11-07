@@ -1,0 +1,32 @@
+import com.rameses.annotations.*;
+
+class GSCUAFInterceptor {
+	
+	@ActiveDB('gsc_uaf') 
+	def uaf_db;
+
+	@DataContext('gsc_business_bfp') 
+	def bfp_db; 	
+
+	@After( pattern="BusinessApplicationUnifiedForm3Service.getReport") 
+	public void afterGetReport( evt ) { 
+		def result = evt.result;
+		if ( !result ) return;
+
+		if ( result.lobs ) { 
+			def businessid = result.business?.objid; 
+			def newlobs = uaf_db.getLobs([ businessid: businessid, appyear: result.appyear ]); 
+			result.lobs.each{ aa-> 
+				def o = newlobs.find{( it.lobid == aa.lobid )} 
+				if ( o ) {
+					aa.declared_capital = ( o.declaredcapital ? o.declaredcapital : null ); 
+					aa.declared_gross = ( o.declaredgross ? o.declaredgross : null ); 
+					aa.prlaa_gross = ( o.prlaagross ? o.prlaagross : null ); 
+				} 
+			} 
+		} 
+
+		def bfp = bfp_db.find([ applicationid: result.objid ]).first(); 
+		if ( bfp?.fsicfee ) result.fsicfee = bfp.fsicfee;  
+	} 
+} 

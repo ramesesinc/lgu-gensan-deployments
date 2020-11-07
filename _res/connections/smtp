@@ -1,3 +1,0 @@
-provider=email
-mail.smtp.host=${mail_smtp_host}
-mail.from=${MAIL_RELAY_USER}

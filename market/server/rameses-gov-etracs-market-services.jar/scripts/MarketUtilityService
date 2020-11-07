@@ -21,6 +21,7 @@ class MarketUtilityService {
 
 	@ProxyMethod 
 	public def calculate( params ) {
+		println 'calc-> '+ params;
 		def acct = acctEm.find( [objid: params.acctid ] ).first();
 		if(!acct) throw new Exception("Account not found");
 		def unit = unitEm.find([objid: acct.unit.objid ] ).first();

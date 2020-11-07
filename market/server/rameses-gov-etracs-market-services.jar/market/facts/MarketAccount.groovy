@@ -14,6 +14,8 @@ class MarketAccount {
 	String paymentmode;	//MARKET_PAYMENTMODE
 	Date startdate;
 	double partialbalance = 0;
+
+	Date lastdatepaid;
 	
 	/*
 	public MarketAccount(def mm) {

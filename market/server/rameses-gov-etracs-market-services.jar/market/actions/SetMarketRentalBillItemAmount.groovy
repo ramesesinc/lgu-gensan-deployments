@@ -32,14 +32,24 @@ public class SetMarketRentalBillItemAmount implements RuleActionHandler {
         billitem.rate = rate;
         billitem.ratetype = vrate.ratetype;
         if( account.paymentmode == "MONTHLY" ){
-            if( partialbalance > 0 && billitem.first == true ) {
-                billitem.amount = partialbalance;
-            }
-            else if ( vrate.ratetype == "DAY") {
+            if ( vrate.ratetype == "DAY") {
                 billitem.amount = billitem.numdays * rate; 
             }
             else {
                 billitem.amount = vrate.rate;
+            }
+
+            if ( partialbalance > 0 && billitem.first == true ) {
+                billitem.amount = partialbalance; 
+                
+//                def lastpaidYM = toYearMonth( account.lastdatepaid );
+//                def billYM = toYearMonth( billitem.year, billitem.month ); 
+//                if ( lastpaidYM < billYM ) {
+//                    billitem.amount += partialbalance; 
+//                }
+//                else {
+//                    billitem.amount = partialbalance; 
+//                }
             }
         }
         else if( account.paymentmode == "WEEKLY") {
@@ -63,8 +73,15 @@ public class SetMarketRentalBillItemAmount implements RuleActionHandler {
                 billitem.amount = billitem.numdays * rate; 
             }            
         }
-        
-
     }
 
+    private def toYearMonth( java.util.Date value ) {
+        return new java.text.SimpleDateFormat('yyyyMM').format( value ).toInteger();
+    }
+    private def toYearMonth( def year, def month ) {
+        def buff = new StringBuilder(); 
+        buff.append( year.toString().padLeft(4, "0")); 
+        buff.append( month.toString().padLeft(2, "0")); 
+        return buff.toString().toInteger(); 
+    }
 }

@@ -120,9 +120,20 @@ class MarketBillingService {
 		if(!pmtStat) throw new Exception("Please add first beginning balance entry to this account");
 
 		def fromdate = DateFunc.getDayAdd( pmtStat.paiduntildate, 1 );
+		if ( pmtStat.partialbalance != null && pmtStat.partialbalance > 0 ) {
+			fromdate = pmtStat.paiduntildate; 
+		}
+		else if (( pmtStat.partialbalance == null || pmtStat.partialbalance == 0.0 ) && acct.paymentmode == 'MONTHLY' ) {
+			def dateBean = new com.rameses.util.DateBean( pmtStat.paiduntildate ); 
+			fromdate = DateFunc.getDayAdd( dateBean.monthEnd, 1 );
+		}
 
 		def factBuilder = new treasury.utils.FactBuilder();
-		factBuilder.facts << new MarketAccount( paymentmode: acct.paymentmode, partialbalance: pmtStat.partialbalance );
+		if ( o.cashreceipt ) {
+			factBuilder.facts << new CashReceipt(); 
+		}
+
+		factBuilder.facts << new MarketAccount( paymentmode: acct.paymentmode, partialbalance: pmtStat.partialbalance, lastdatepaid: pmtStat.paiduntildate );
 		factBuilder.facts << new MarketBilling( fromdate: fromdate, todate: todate );
 		factBuilder.facts << new MarketRentalUnit( unit );		
 		if(include_rental) factBuilder.facts.addAll( getRentalRates( acct.unit.objid, fromdate, todate, acct.unit.ratetype ) );

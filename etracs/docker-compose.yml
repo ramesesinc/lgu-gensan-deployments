@@ -13,6 +13,7 @@ services:
         max-size: 10m
     env_file:
       - ./env.conf
+      - ../_res/env.conf
       - ../_custom/env.conf
     ports:
       - "8060:8060"
@@ -21,7 +22,8 @@ services:
       - "8080:8080"
     volumes:
       - ../_res/connections:/apps/etracs25/connections/ext
-      - ./datasources:/services/datasources
+      - ../_custom/datasources:/services/datasources
+      - ./datasources:/services/datasources/ext
       - ./modules:/apps/etracs25/modules
 
       - ../_custom/module-server:/apps/etracs25/modules/ext/lgu

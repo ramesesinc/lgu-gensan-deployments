@@ -1,5 +1,5 @@
 dialect=mysql
 driverClass=com.mysql.jdbc.Driver
-url=jdbc:mysql://${dbserver_host}/etracs_image
+url=jdbc:mysql://${dbserver_host}/queue
 user=${dbserver_user}
 pwd=${dbserver_pass}

@@ -29,6 +29,7 @@ from (
 	from rptledger_item 
 	where parentid = $P{rptledgerid}
 	and year = $P{year}
+	and taxdifference = 0
 )x
 
 

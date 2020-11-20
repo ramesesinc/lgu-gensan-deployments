@@ -139,7 +139,7 @@ from (
         rpi.shdisc
     from rptledger rl 
     inner join rptpayment rp on rl.objid = rp.refid 
-    inner join vw_rptpayment_item rpi on rp.objid = rpi.parentid
+    inner join vw_rptpayment_item_detail rpi on rp.objid = rpi.parentid
     inner join rptledgerfaas rlf on rpi.rptledgerfaasid = rlf.objid 
     where rl.objid = $P{objid} 
     and rp.voided = 0

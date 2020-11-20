@@ -170,7 +170,7 @@ select
 	 0.0 as levynet
 from cashreceipt cr 
 	inner join rptpayment rp on cr.objid = rp.receiptid 
-	inner join vw_rptpayment_item ri on rp.objid = ri.parentid
+	inner join vw_rptpayment_item_detail ri on rp.objid = ri.parentid
 	inner join rptledger rl on rp.refid = rl.objid  
 	inner join propertyclassification pc on rl.classification_objid = pc.objid 
 	inner join remittance rc on cr.remittanceid = rc.objid
@@ -199,7 +199,7 @@ select
 	    ri.sh - ri.shdisc) as netgrandtotal
 from cashreceipt cr 
 	inner join rptpayment rp on cr.objid = rp.receiptid 
-	inner join vw_rptpayment_item ri on rp.objid = ri.parentid
+	inner join vw_rptpayment_item_detail ri on rp.objid = ri.parentid
 	inner join rptledger rl on rp.refid = rl.objid  
 	inner join propertyclassification pc on rl.classification_objid = pc.objid 
 	inner join remittance rc on cr.remittanceid = rc.objid

@@ -222,14 +222,7 @@ class RPTTaxCreditService
                 ]
             }
         }
-
-        // tax credit
-        items << [
-            txndate: credit.txndate,
-            particulars: credit.remarks,
-            cr: credit.amount
-        ]
-
+        
         // total availed discounts
         if (credit.discapplied > 0) {
             items << [
@@ -239,7 +232,22 @@ class RPTTaxCreditService
             ]
         }
 
-        return items;
+        // tax credit
+        items << [
+            txndate: credit.txndate,
+            particulars: credit.remarks,
+            cr: credit.amount
+        ]
+
+        
+
+        //tax differences
+        def taxdiff = em_credit.findTaxDifference(credit.rptledger)
+        if (taxdiff.dr > 0) {
+            taxdiff.txndate = dtSvc.parse('yyyy-MM-dd', taxdiff.txndate)
+            items << taxdiff
+        }
+        return items
     }
 
     def qtrs = [
@@ -512,5 +520,7 @@ class RPTTaxCreditService
             println 'Ignore: ' + e.message
         }
     }
+
+
 }
 

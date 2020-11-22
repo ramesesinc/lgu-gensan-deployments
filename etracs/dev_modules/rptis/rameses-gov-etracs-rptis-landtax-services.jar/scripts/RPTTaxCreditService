@@ -403,8 +403,10 @@ class RPTTaxCreditService
         pmt.voided = false
         pmt.fromyear = credit.items.first().year
         pmt.fromqtr = credit.items.first().qtr
+        if (!pmt.fromqtr) pmt.fromqtr = 1
         pmt.toyear = credit.items.last().year
         pmt.toqtr = credit.items.last().qtr
+        if (!pmt.toqtr) pmt.toqtr = 4
         em_rptpayment.create(pmt)
 
         credit.items.each{

@@ -13,9 +13,9 @@
         <field name="postedbytitle" required="true" />
         <field name="dtposted" required="true" />
         <field name="fromyear" required="true" type="integer" caption="From Year" />
-        <field name="fromqtr" required="true" type="integer" caption="From Qtr" />
+        <field name="fromqtr" type="integer" caption="From Qtr" />
         <field name="toyear" required="true" type="integer" caption="To Year" />
-        <field name="toqtr" required="true" type="integer" caption="To Qtr" />
+        <field name="toqtr" type="integer" caption="To Qtr" />
         <field name="amount" required="true" type="decimal" caption="amount" />
         <field name="collectingagency" />
         <field name="voided" required="true" type="boolean" />

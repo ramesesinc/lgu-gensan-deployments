@@ -13,9 +13,9 @@
         <field name="postedbytitle" required="true" />
         <field name="dtposted" required="true" />
         <field name="fromyear" type="integer" required="true" />
-        <field name="fromqtr" type="integer" required="true" />
+        <field name="fromqtr" type="integer" />
         <field name="toyear" type="integer" required="true" />
-        <field name="toqtr" type="integer" required="true" />
+        <field name="toqtr" type="integer" />
         <field name="basic" required="true" type="decimal" />
         <field name="basicint" required="true" type="decimal" />
         <field name="basicdisc" required="true" type="decimal" />

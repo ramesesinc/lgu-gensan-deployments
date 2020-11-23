@@ -119,4 +119,4 @@ select
 from rptledger_item 
 where parentid = $P{objid}
 and taxdifference = 1 
-group by year
+group by year, fromqtr

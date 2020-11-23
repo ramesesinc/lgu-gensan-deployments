@@ -385,6 +385,7 @@ class RPTTaxCreditService
     }
 
     void postRptPayment(credit) {
+        println 'credit.items => ' + credit.items;
         def pmt = [objid: 'RP' + new java.rmi.server.UID()]
         pmt.type = 'credit'
         pmt.refid = credit.rptledger.objid

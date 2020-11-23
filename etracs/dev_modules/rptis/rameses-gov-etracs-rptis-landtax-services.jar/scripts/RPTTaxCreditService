@@ -385,7 +385,6 @@ class RPTTaxCreditService
     }
 
     void postRptPayment(credit) {
-        println 'credit.items => ' + credit.items;
         def pmt = [objid: 'RP' + new java.rmi.server.UID()]
         pmt.type = 'credit'
         pmt.refid = credit.rptledger.objid
@@ -423,6 +422,8 @@ class RPTTaxCreditService
         em_rptledger_item.where('parentid = :objid and amount <= amtpaid', credit.rptledger).delete()
 
         if (!credit._hasarrears) {
+            println 'credit => ' + credit;
+        
             def fullypaiditems = credit.items.findAll{ !it.partialled }
             if (fullypaiditems) {
                 def lastitem = fullypaiditems.last()

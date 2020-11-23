@@ -422,11 +422,10 @@ class RPTTaxCreditService
         em_rptledger_item.where('parentid = :objid and amount <= amtpaid', credit.rptledger).delete()
 
         if (!credit._hasarrears) {
-            println 'credit => ' + credit;
-        
             def fullypaiditems = credit.items.findAll{ !it.partialled }
             if (fullypaiditems) {
                 def lastitem = fullypaiditems.last()
+                if (!lastitem.qtr) lastitem.qtr = 4
                 em_rptledger.find([objid: credit.rptledger.objid])
                             .update([lastyearpaid: lastitem.year, lastqtrpaid: lastitem.qtr])
             }

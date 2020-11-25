@@ -320,11 +320,6 @@ class RPTTaxCreditService
         credit.postingitems = items.findAll{ it.year >= credit.info.creditedyear}
         credit._hasarrears = items.find{it.year < credit.info.creditedyear}
         if (!credit.postingitems) return
-        credit.postingitems.each{
-            it.discount = 0.0
-            it.interest = 0.0
-            it.total = it.amount
-        }
         distributeCredit(credit)
         postRptPayment(credit)
     }
@@ -347,7 +342,7 @@ class RPTTaxCreditService
 
             def yritems = postingitems.findAll{it.year == yrs[idx]}
             def qtrs = yritems.qtr.unique().sort();
-
+            
             for (int q = 0; q < qtrs.size(); q++){
                 if (partialamt <= 0) break;
 
@@ -357,6 +352,7 @@ class RPTTaxCreditService
 
                     def items = qtritems.findAll{it.priority == priorities[i]}
                     def itemtotal = numSvc.round(items.total.sum())
+                    
                     if (partialamt >= itemtotal){
                         partialamt -= itemtotal 
                         credititems += items 
@@ -408,8 +404,6 @@ class RPTTaxCreditService
                 } else {
                     bill.billtoyear = credit.rptledger.lastyearpaid
                 }
-
-                println 'bill.billtoyear => ' + bill.billtoyear
 
                 bill = billingSvc.generateBill(bill)
                 credit.postingitems = bill.ledgers[0].postingitems

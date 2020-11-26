@@ -91,6 +91,7 @@ class RPTTaxCreditService
         credit.txnno = getNextSeries()
         credit.txndate = dtSvc.serverDate
         credit.amtapplied = 0
+        credit.discapplied = 0
         if (credit.type == TAX_ADJUSTMENT) {
             buildTaxAdjustmentCreditInfo(credit)
         }
@@ -224,13 +225,13 @@ class RPTTaxCreditService
         }
         
         // total availed discounts
-        if (credit.discapplied > 0) {
-            items << [
-                txndate: credit.txndate,
-                particulars: "Availed Discount",
-                dr: credit.discapplied
-            ]
-        }
+        // if (credit.discapplied > 0) {
+        //     items << [
+        //         txndate: credit.txndate,
+        //         particulars: "Availed Discount",
+        //         dr: credit.discapplied
+        //     ]
+        // }
 
         // tax credit
         items << [
@@ -243,10 +244,36 @@ class RPTTaxCreditService
 
         //tax differences
         def taxdiff = em_credit.findTaxDifference(credit.rptledger)
-        if (taxdiff.dr > 0) {
+        if (taxdiff && taxdiff.dr > 0) {
             taxdiff.txndate = dtSvc.parse('yyyy-MM-dd', taxdiff.txndate)
             items << taxdiff
         }
+
+        if (credit.state == "APPROVED") {
+            try {
+                // generate current bill and add the following
+                // dr = total penalties
+                // cr = total discounts
+                generateBilling(credit);
+                def postingitems = credit.postingitems
+                println 'postingitems => ' + postingitems
+                def penalty = postingitems.interest.sum();
+                def discount = postingitems.discount.sum();
+                def currdate =dtSvc.serverDate;
+                if (penalty > 0) {
+                    items << [
+                        txndate: currdate,
+                        particulars: "Current Bill Penalty/Discount (as of" + dtSvc.format('MM-dd-yyyy', currdate)+")",
+                        dr: penalty,
+                        cr: discount,
+                    ]
+                }
+            } catch (e) {
+                //ignore
+                e.printStackTrace();
+            }
+        }
+
         return items
     }
 

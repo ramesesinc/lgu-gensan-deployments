@@ -14,7 +14,7 @@ where rp.refid = $P{rptledgerid}
 and rpi.year = $P{year}
 and rp.type <> 'credit'
 and cv.objid is null 
-group by rp.receiptid, rp.receiptno, rp.receiptdate
+group by rp.receiptdate, rp.receiptno 
 
 
 [findTaxDueFromLedgerItem]

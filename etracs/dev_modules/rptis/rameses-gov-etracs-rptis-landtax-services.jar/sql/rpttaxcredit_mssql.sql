@@ -99,3 +99,33 @@ where rli.parentid = x.rptledgerid
 and rli.year = x.year 
 and rli.revtype = x.revtype 
 
+
+[findTaxDifference]
+select 
+	(
+		convert(varchar(4),year) + '-' +
+		case 
+			when fromqtr = 1 then '01'
+			when fromqtr = 2 then '04'
+			when fromqtr = 3 then '07'
+			else '10'
+		end + '-01'
+	) as txndate,
+	remarks as particulars,
+	sum(amount) as dr 
+from rptledger_item 
+where parentid = $P{objid}
+and taxdifference = 1 
+group by year, fromqtr, remarks
+
+[findCreditInfo]
+select 
+	rp.receiptdate,
+	sum(interest) as dr,
+  sum(discount) as cr
+from rptpayment rp
+	inner join rptpayment_item rpi on rp.objid = rpi.parentid 
+where rp.receiptid = $P{objid}
+and rp.type = 'CREDIT'
+and rp.fromyear = $P{year}
+group by rp.receiptdate

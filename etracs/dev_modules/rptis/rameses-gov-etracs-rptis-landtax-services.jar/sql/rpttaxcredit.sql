@@ -120,3 +120,15 @@ from rptledger_item
 where parentid = $P{objid}
 and taxdifference = 1 
 group by year, fromqtr, remarks
+
+[findCreditInfo]
+select 
+	rp.receiptdate,
+	sum(interest) as dr,
+  sum(discount) as cr
+from rptpayment rp
+	inner join rptpayment_item rpi on rp.objid = rpi.parentid 
+where rp.receiptid = $P{objid}
+and rp.type = 'CREDIT'
+and rp.fromyear = $P{year}
+group by rp.receiptdate

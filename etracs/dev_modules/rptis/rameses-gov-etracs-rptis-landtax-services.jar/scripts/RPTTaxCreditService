@@ -115,6 +115,7 @@ class RPTTaxCreditService
 
         credit.state = STATE_APPROVED
         credit.approvedby = approvedby
+        credit.amtapplied = credit.discapplied
         em_credit.update(credit)
         return credit
     }
@@ -197,7 +198,7 @@ class RPTTaxCreditService
         //dr items
         items << [
             txndate: dtSvc.parse("yyyy-MM-dd", credit.info.creditedyear+"-01-01"),
-            particulars: "BEGINNING BALANCE",
+            particulars: "Beginning Balance",
             dr: credit.info.annualtax,
         ]
 
@@ -225,13 +226,13 @@ class RPTTaxCreditService
         }
         
         // total availed discounts
-        // if (credit.discapplied > 0) {
-        //     items << [
-        //         txndate: credit.txndate,
-        //         particulars: "Availed Discount",
-        //         dr: credit.discapplied
-        //     ]
-        // }
+        if (credit.discapplied > 0) {
+            items << [
+                txndate: credit.txndate,
+                particulars:  "Offset availed discount",
+                dr: credit.discapplied
+            ]
+        }
 
         // tax credit
         items << [
@@ -256,11 +257,10 @@ class RPTTaxCreditService
                 // cr = total discounts
                 generateBilling(credit);
                 def postingitems = credit.postingitems
-                println 'postingitems => ' + postingitems
                 def penalty = postingitems.interest.sum();
                 def discount = postingitems.discount.sum();
                 def currdate =dtSvc.serverDate;
-                if (penalty > 0) {
+                if (penalty > 0 || discount > 0) {
                     items << [
                         txndate: currdate,
                         particulars: "Current Bill Penalty/Discount (as of" + dtSvc.format('MM-dd-yyyy', currdate)+")",
@@ -271,6 +271,21 @@ class RPTTaxCreditService
             } catch (e) {
                 //ignore
                 e.printStackTrace();
+            }
+        }
+
+        if (credit.state == 'CLOSED') {
+            def creditinfo = em_credit.findCreditInfo([
+                objid: credit.objid,
+                year: credit.info.creditedyear
+            ])
+            if (creditinfo && (creditinfo.dr > 0 || creditinfo.cr > 0)){
+                items << [
+                    txndate: creditinfo.receiptdate,
+                    particulars: "Penalty/Discount credited",
+                    dr: creditinfo.dr > 0 ? creditinfo.dr : null,
+                    cr: creditinfo.cr > 0 ? creditinfo.cr : null,
+                ]
             }
         }
 
@@ -354,7 +369,7 @@ class RPTTaxCreditService
     void distributeCredit(credit) {
         def credititems = []
         def partialamt = credit.balance
-
+        
         def postingitems = credit.remove('postingitems')
         if (!postingitems) {
             throw new Exception('Items to credit must be specified.')

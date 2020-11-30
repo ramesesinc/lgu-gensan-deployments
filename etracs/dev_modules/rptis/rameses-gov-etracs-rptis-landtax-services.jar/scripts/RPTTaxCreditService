@@ -250,29 +250,29 @@ class RPTTaxCreditService
             items << taxdiff
         }
 
-        if (credit.state == "APPROVED") {
-            try {
-                // generate current bill and add the following
-                // dr = total penalties
-                // cr = total discounts
-                generateBilling(credit);
-                def postingitems = credit.postingitems
-                def penalty = postingitems.interest.sum();
-                def discount = postingitems.discount.sum();
-                def currdate =dtSvc.serverDate;
-                if (penalty > 0 || discount > 0) {
-                    items << [
-                        txndate: currdate,
-                        particulars: "Current Bill Penalty/Discount (as of" + dtSvc.format('MM-dd-yyyy', currdate)+")",
-                        dr: penalty,
-                        cr: discount,
-                    ]
-                }
-            } catch (e) {
-                //ignore
-                e.printStackTrace();
-            }
-        }
+        // if (credit.state == "APPROVED") {
+        //     try {
+        //         // generate current bill and add the following
+        //         // dr = total penalties
+        //         // cr = total discounts
+        //         generateBilling(credit);
+        //         def postingitems = credit.postingitems
+        //         def penalty = postingitems.interest.sum();
+        //         def discount = postingitems.discount.sum();
+        //         def currdate =dtSvc.serverDate;
+        //         if (penalty > 0 || discount > 0) {
+        //             items << [
+        //                 txndate: currdate,
+        //                 particulars: "Current Bill Penalty/Discount (as of" + dtSvc.format('MM-dd-yyyy', currdate)+")",
+        //                 dr: penalty,
+        //                 cr: discount,
+        //             ]
+        //         }
+        //     } catch (e) {
+        //         //ignore
+        //         e.printStackTrace();
+        //     }
+        // }
 
         if (credit.state == 'CLOSED') {
             def creditinfo = em_credit.findCreditInfo([
@@ -284,7 +284,7 @@ class RPTTaxCreditService
                     txndate: creditinfo.receiptdate,
                     particulars: "Penalty/Discount credited",
                     dr: creditinfo.dr > 0 ? creditinfo.dr : null,
-                    cr: creditinfo.cr > 0 ? creditinfo.cr : null,
+                    cr: null,
                 ]
             }
         }

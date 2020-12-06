@@ -274,20 +274,20 @@ class RPTTaxCreditService
         //     }
         // }
 
-        if (credit.state == 'CLOSED') {
-            def creditinfo = em_credit.findCreditInfo([
-                objid: credit.objid,
-                year: credit.info.creditedyear
-            ])
-            if (creditinfo && (creditinfo.dr > 0 || creditinfo.cr > 0)){
-                items << [
-                    txndate: creditinfo.receiptdate,
-                    particulars: "Penalty/Discount credited",
-                    dr: creditinfo.dr > 0 ? creditinfo.dr : null,
-                    cr: null,
-                ]
-            }
-        }
+        // if (credit.state == 'CLOSED') {
+        //     def creditinfo = em_credit.findCreditInfo([
+        //         objid: credit.objid,
+        //         year: credit.info.creditedyear
+        //     ])
+        //     if (creditinfo && (creditinfo.dr > 0 || creditinfo.cr > 0)){
+        //         items << [
+        //             txndate: creditinfo.receiptdate,
+        //             particulars: "Penalty/Discount credited",
+        //             dr: creditinfo.dr > 0 ? creditinfo.dr : null,
+        //             cr: null,
+        //         ]
+        //     }
+        // }
 
         return items
     }

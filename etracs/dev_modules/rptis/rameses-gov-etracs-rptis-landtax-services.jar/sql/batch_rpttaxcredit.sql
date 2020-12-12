@@ -51,4 +51,13 @@ from rptledger rl
 where rl.state = 'APPROVED'
 and rl.totalav > 0
 and rl.taxable = 1
+and not exists (
+	select * from rpttaxcredit 
+	where type = 'TAX_ADJUSTMENT' 
+	and state = 'DRAFT'
+	and rptledger_objid = rl.objid
+)
+and not exists(
+	select * from batch_rpttaxcredit_ledger_posted where objid = rl.objid 
+)
 

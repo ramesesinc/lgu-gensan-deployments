@@ -264,6 +264,8 @@ public class RPTBillingRuleService
 			return false
 		if (item.year == bill.billtoyear && bill.billtoqtr != 4)
 			return true 
+		if (bill.billtoyear && bill.ledgerfact.lastyearpaid && bill.ledgerfact.lastqtrpaid != 4)
+			return true 
 		return false
 	}
 

@@ -22,7 +22,7 @@ app:
     - { order: 102, version: 2.51, file: "modules/core/osiris2-draw.jar" }
     - { order: 103, version: 2.51, file: "modules/core/osiris2-framework.jar" }
     - { order: 104, version: 2.51, file: "modules/core/osiris2-report.jar" }
-    - { order: 105, version: 2.52, file: "modules/core/rameses-client-ui.jar" }
+    - { order: 105, version: 2.53, file: "modules/core/rameses-client-ui.jar" }
     - { order: 106, version: 2.51, file: "modules/core/rameses-client-ui-bio.jar" }
     - { order: 107, version: 2.52, file: "modules/core/rameses-client-ui-jfx.jar" }
     - { order: 108, version: 2.51, file: "modules/core/rameses-common2.jar"  }
@@ -32,7 +32,7 @@ app:
     - { order: 112, version: 2.51, file: "modules/core/rameses-client-notification-socketio.jar" }
     # shared
     - { order: 150, version: 2.51, file: "modules/shared/client-system.jar" }
-    - { order: 151, version: 2.52, file: "modules/shared/client-ui-extended.jar" }
+    - { order: 151, version: 2.53, file: "modules/shared/client-ui-extended.jar" }
     - { order: 152, version: 2.52, file: "modules/shared/rameses-client-menu.jar" }
     - { order: 153, version: 2.51, file: "modules/shared/rameses-client-report.jar" }
     - { order: 154, version: 2.51, file: "modules/shared/rameses-rules-mgmt.jar" }
@@ -43,8 +43,8 @@ app:
     - { order: 161, version: 2.51, file: "modules/shared/rameses-client-notification2.jar" } 
     # etracs
     - { order: 200, version: 2.51, file: "modules/etracs/rameses-etracs-main.jar" }
-    - { order: 202, version: 2.51, file: "modules/etracs/rameses-gov-etracs-ngas-report.jar" }
-    - { order: 203, version: 2.51, file: "modules/etracs/rameses-gov-etracs-sre-report.jar" }
+    - { order: 202, version: 2.52, file: "modules/etracs/rameses-gov-etracs-ngas-report.jar" }
+    - { order: 203, version: 2.52, file: "modules/etracs/rameses-gov-etracs-sre-report.jar" }
     - { order: 204, version: 2.51, file: "modules/etracs/rameses-gov-etracs-tools.jar" } 
     - { order: 205, version: 2.51, file: "modules/etracs/rameses-gov-etracs-signatory-template.jar" }
     - { order: 206, version: 2.51, file: "modules/etracs/rameses-gov-lgu.jar" }
@@ -53,7 +53,7 @@ app:
     - { order: 220, version: 2.51, file: "modules/treasury/rameses-treasury-common.jar" }
     - { order: 221, version: 2.51, file: "modules/treasury/rameses-gov-depositslip.jar" }
     - { order: 222, version: 2.53, file: "modules/treasury/rameses-gov-treasury.jar" }
-    - { order: 223, version: 2.52, file: "modules/treasury/rameses-gov-treasury-report.jar" }
+    - { order: 223, version: 2.53, file: "modules/treasury/rameses-gov-treasury-report.jar" }
     - { order: 224, version: 2.52, file: "modules/treasury/rameses-gov-treasury-tool.jar" }
     # epayment
     - { order: 230, version: 2.51, file: "modules/epayment/rameses-gov-epayment.jar" }

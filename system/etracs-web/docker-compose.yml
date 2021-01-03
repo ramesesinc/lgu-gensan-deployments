@@ -1,10 +1,10 @@
 version: "3"
 
 services:
-  
-  notification-socketio:
-    container_name: notification-socketio
-    image: "ramesesinc/notification-server:1.0"
+
+  etracs-web:
+    container_name: etracs-web
+    image: ramesesinc/etracs-web:2.5.01.01
     restart: always
     logging:
       driver: "json-file"
@@ -15,5 +15,6 @@ services:
       TZ: "Asia/Manila"
     env_file:
       - ./env.conf
-    ports: 
-      - "7080:8080"
+      - ../../_custom/env.conf
+    ports:
+      - "8080:8080"

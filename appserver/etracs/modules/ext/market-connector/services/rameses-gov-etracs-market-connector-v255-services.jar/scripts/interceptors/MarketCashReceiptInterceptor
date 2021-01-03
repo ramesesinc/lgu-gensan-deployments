@@ -2,7 +2,7 @@ import com.rameses.annotations.*;
 
 class MarketCashReceiptInterceptor {
 	
-	@Service(value="MarketPaymentService", connection="local-market-server") 
+	@Service(value="MarketPaymentService", connection="market") 
 	def pmtSvc; 
 
 	@After( pattern="CashReceiptService.post", eval="#{args[0]?.collectiontype?.handler == 'market'}")

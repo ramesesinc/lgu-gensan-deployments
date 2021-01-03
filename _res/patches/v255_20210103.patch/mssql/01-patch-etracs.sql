@@ -14,7 +14,7 @@ CREATE TABLE online_business_application (
   apptype varchar(20) NOT NULL,
   appdate date NOT NULL,
   lobs text NOT NULL,
-  infos longtext NOT NULL,
+  infos varchar(MAX) NOT NULL,
   requirements varchar(MAX) NOT NULL,
   step int NOT NULL DEFAULT '0',
   dtapproved datetime NULL,

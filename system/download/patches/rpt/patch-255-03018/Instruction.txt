@@ -1,0 +1,55 @@
+PATCH-255-03018
+================================================
+
+Change Log: 
+
+- ASSESSOR	
+    - Resection: add multiple claim support
+    - RPTIS: notification: set default sender values 
+    - RealProperty: improve parcel length support
+    - FAAS: display sketch for drawing data
+    - Setting: building: auto load building kind
+    - Resection: add multiple claim support
+    - Online access support for true copy
+	- Online support for NOA
+	- FAAS Annotation updates
+	- Workflow: support sendback to returning officer
+	- CancelFAAS: add request report support
+	- View list of payments from FAAS
+	- View list of issued tax clearances	
+	- Consolidation: Transfer creation of Consolidated Land to Taxmapping
+	- Subdivision: add affected rpu filter
+	- Bldg: add date constructed and additional floor areas	
+	- Online Batch GR
+	- Mapping of LGU Entities (Province)
+	- Certification support for entity members
+	- Non-Depreciated Building Additional Items (supported in rule)
+	- Subdivision: Fix the cancellation of affected improvment
+	- Subdivision: Add assistance support
+	- Additional building FAAS info 
+	- Machine SMV Support
+	- Subdivision: option to set affected FAAS txntype to DP
+	- Report: Add barangay filter to Agriland Actual Use Summary
+	- Report: Comparative Report on Real Property Assessment
+	- RedFlag: Add state filter
+	- RedFlag: Add tdno/txnno column
+	- Transmittal: View faas 	
+
+    
+- LANDTAX
+    - Online access support for tax clearance
+	- Support LedgerFAAS rule fact to handle staggered AV
+	- Support Computation based on Actual Use (mixed used)
+	- Add redflag support
+	- Access to cancelled properties report
+	- View ledgers in Cash Receipt (56)
+	- Ledger Rule: add tdno 	
+	- Post realty tax shares asynchronously 
+	- Abstract: fix missing paidby
+	- RPTAR report 
+	- Realty Tax Credit support	
+
+
+================================================
+
+1. Run script "rptis-v255-03018" after updating the treasury module

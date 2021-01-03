@@ -1,0 +1,32 @@
+version: "3"
+
+services:
+
+  local-market-server:
+    image: ramesesinc/local-market-server:v001
+    container_name: local-market-server
+    restart: always
+    logging: 
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+    env_file:
+      - ./env.conf
+      - ../_res/env.conf
+      - ../_custom/env.conf
+    ports:
+      - "8074:8070"
+    volumes:
+      - ../_res/connections:/apps/server/services/apps/enterprise/connections/ext
+      - ../_custom/datasources/marketds:/apps/server/services/datasources/mainds
+
+      - ./server/rameses-gov-etracs-market-services.jar:/apps/server/services/apps/enterprise/modules/rameses-gov-etracs-market-services.jar
+
+      - ./_dev_lib/db-dialect.jar:/apps/server/lib/db-dialect.jar
+      - ./_dev_lib/rameses-common2.jar:/apps/server/lib/rameses-common2.jar
+      - ./_dev_lib/rameses-main-bootloader.jar:/apps/server/lib/rameses-main-bootloader.jar
+      - ./_dev_lib/rameses-osiris3-core2.jar:/apps/server/lib/rameses-osiris3-core2.jar
+      - ./_dev_lib/rameses-osiris3-server.jar:/apps/server/lib/rameses-osiris3-server.jar
+
+      - ./_dev_modules/rameses-treasury-common-services.jar:/apps/server/services/modules/rameses-treasury-common-services.jar

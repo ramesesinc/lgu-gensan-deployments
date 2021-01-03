@@ -1,6 +1,6 @@
 #!/bin/sh
 RUN_DIR=`pwd`
-cd ../appserver/market
+cd ../appserver/epayment
 docker-compose down
 docker system prune -f
 cd $RUN_DIR

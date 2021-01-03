@@ -13,13 +13,13 @@ services:
         max-size: "10m"
     env_file:
       - ./env.conf
-      - ../_res/env.conf
-      - ../_custom/env.conf
+      - ../../_res/env.conf
+      - ../../_custom/env.conf
     ports:
       - "8074:8070"
     volumes:
-      - ../_res/connections:/apps/server/services/apps/enterprise/connections/ext
-      - ../_custom/datasources/marketds:/apps/server/services/datasources/mainds
+      - ../../_res/connections:/apps/server/services/apps/enterprise/connections/ext
+      - ../../_custom/datasources/marketds:/apps/server/services/datasources/mainds
 
       - ./server/rameses-gov-etracs-market-services.jar:/apps/server/services/apps/enterprise/modules/rameses-gov-etracs-market-services.jar
 

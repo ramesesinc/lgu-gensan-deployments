@@ -11,4 +11,6 @@ cd $BASE_DIR/appserver/etracs && docker-compose up -d
 
 cd $BASE_DIR/appserver/market && docker-compose up -d
 
+cd $BASE_DIR/appserver/obo && docker-compose up -d
+
 cd $RUN_DIR

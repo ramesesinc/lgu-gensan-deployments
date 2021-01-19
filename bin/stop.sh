@@ -10,6 +10,8 @@ cd $BASE_DIR/appserver/epayment && docker-compose down
 
 cd $BASE_DIR/appserver/market && docker-compose down
 
+cd $BASE_DIR/appserver/obo && docker-compose down
+
 
 cd $BASE_DIR/system/etracs-web && docker-compose down
 

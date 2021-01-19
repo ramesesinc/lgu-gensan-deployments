@@ -27,8 +27,9 @@ docker pull ramesesinc/mail-server:latest
 docker pull ramesesinc/local-epayment-server:2.5.01.02.02
 docker pull ramesesinc/etracs-server-city:2.5.02.07.01
 docker pull ramesesinc/local-market-server:v001
+docker pull ramesesinc/enterprise-common-server:255.04.001
 
 
 [Patches]
 From v255_20210105.patch
-To   v255_20210114.patch
+To   v255_20210116.patch.obo

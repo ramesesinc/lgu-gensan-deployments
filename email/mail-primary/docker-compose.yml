@@ -4,7 +4,7 @@ services:
 
   mail-primary: 
     container_name: mail-primary
-    image: "ramesesinc/mail-server:latest"
+    image: ramesesinc/mail-server:latest
     restart: always
     logging: 
       driver: "json-file"

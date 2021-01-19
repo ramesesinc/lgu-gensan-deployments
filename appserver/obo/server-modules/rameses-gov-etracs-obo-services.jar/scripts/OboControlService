@@ -1,0 +1,96 @@
+import com.rameses.annotations.*;
+
+class OboControlService {
+	
+	@Service("DateService")
+	def dateSvc;
+
+	@DataContext("obo_doctype")
+	def doctypeEm;
+
+	@Service("ControlnoGeneratorService")
+	def controlNoSvc;
+
+	@Service("MenuNotificationService")
+    def notificationSvc;
+
+    @DataContext("obo_control")
+    def controlEm;
+
+	@DataContext(dynamic=true)
+	def dynEm;
+
+	@Env
+	def env;
+
+	@ProxyMethod
+	public def create( def p ) {
+		if(!p.objid ) throw new Exception("objid is required");
+		if(!p._schemaname) throw new Exception("schemaname is required");
+		if(!p.doctypeid) throw new Exception("doctypeid is required");
+
+		def appEm = dynEm.lookup( p._schemaname );
+		def app = appEm.find( [objid: p.objid] ).first();			
+		if(!app) throw new Exception("Document does not exist");
+		if(app.controlid) throw new Exception("This has already been issued");	
+
+		def doctype = doctypeEm.find( [objid: p.doctypeid ]).first();
+		if( doctype.issuetype == 2 ) {
+			if( !p.controlno ) throw new Exception("controlno is required");
+		}
+		else if( doctype.issuetype == 1 || doctype.issuetype == 3 ) {
+			def pattern = doctype.controlnopattern;
+			if(!pattern) throw new Exception("Please define controlnopattern entry in doctype");
+			try {
+				p.controlno = controlNoSvc.getNextNo( pattern );
+			}
+			catch(pex) {
+				throw new Exception("Error generating " + pex.getMessage() + " for pattern " + pattern );
+			}
+			
+		}
+		else {
+			throw new Exception("issuetype is not supported " + doctype.issuetype + " .. ");
+		}
+
+		//check first if this doctype has refdocs 
+		def refDocs = doctypeEm.find( [refdoc: doctype.objid ] ).list()*.objid;
+		if( refDocs ) {
+			//find all ref docs that have not yet been issued
+			def str = "('" + refDocs.join("','") + "')";
+			def unissued = appEm.find( [appid: app.appid ] ).where("controlid IS NULL AND doctypeid IN " + str ).list()*.doctype?.title;
+			if( unissued )
+				throw new Exception("Please issue the ff. reference documents first \n" + unissued.join("\n"));
+		}
+
+		def u = [:];
+		u.state = 1;
+		u.issuedby = [ objid: env.USERID, name: env.FULLNAME ];
+		u.dtissued = dateSvc.getServerDate();
+		u.doctypeid = p.doctypeid;
+		u.controlno = p.controlno;
+		u.remarks = p.remarks;
+		u.expirydate = p.expirydate;
+		u.template = doctype.template;
+		u.approverid = doctype.approverid;
+		u.endorserid = doctype.endorserid;
+		u.reportheader = doctype.reportheader;
+
+		u = controlEm.create( u );
+
+		appEm.find( [objid: p.objid] ).update( [controlid: u.objid ] );
+
+		if( p.notificationid) {
+			def notList = []
+			notList << p.notificationid;
+			notList << "obo";
+			notificationSvc.notify( notList );
+		}
+
+		return u;
+	}	
+	
+
+
+
+}

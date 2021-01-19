@@ -5,5 +5,5 @@ app:
     "epayment.app.context" : "enterprise"
 
   modules:
-    - { order: 230, version: 2.55, file: "modules/epayment/rameses-gov-epayment.jar" }
+    - { order: 230, version: 2.56, file: "modules/epayment/rameses-gov-epayment.jar" }
     - { order: 231, version: 2.55, file: "modules/epayment/rameses-gov-epayment-report.jar" }

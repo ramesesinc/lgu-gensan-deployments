@@ -18,12 +18,17 @@ git clone https://github.com/ramesesinc/lgu-gensan-deployments.git
 [DockerHub]
 docker pull nginx:latest
 docker pull ramesesinc/node-download-server:0.0.2
-docker pull ramesesinc/etracs-web:2.5.01.01
+docker pull ramesesinc/notification-server:1.0
 docker pull ramesesinc/gdx-proxy-server:v001
 docker pull ramesesinc/gdx-client:1.03.01
-docker pull ramesesinc/notification-server:1.0
+docker pull ramesesinc/etracs-web:2.5.01.01
 docker pull ramesesinc/queue-server:255.02.002
 docker pull ramesesinc/mail-server:latest
-docker pull ramesesinc/local-epayment-server:2.5.01.02.01
-docker pull ramesesinc/etracs-server-city:2.5.02.04.01
+docker pull ramesesinc/local-epayment-server:2.5.01.02.02
+docker pull ramesesinc/etracs-server-city:2.5.02.07.01
 docker pull ramesesinc/local-market-server:v001
+
+
+[Patches]
+From v255_20210105.patch
+To   v255_20210114.patch

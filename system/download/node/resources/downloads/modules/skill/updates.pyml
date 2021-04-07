@@ -1,0 +1,6 @@
+app:
+
+   env:
+
+   modules:
+      - { order: 300, version: 2.55, file: "modules/skill/rameses-gov-skill-registry.jar" }

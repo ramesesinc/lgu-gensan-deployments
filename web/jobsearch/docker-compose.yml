@@ -19,3 +19,5 @@ services:
       - ../../_custom/env.conf
     ports:
       - "8081:8080"
+    volumes:
+      - ../../_custom/lgu-logo.png:/webroot/res/logo.png

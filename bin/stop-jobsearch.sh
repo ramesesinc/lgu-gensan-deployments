@@ -3,8 +3,6 @@ RUN_DIR=`pwd`
 cd ..
 BASE_DIR=`pwd`
 
-cd $BASE_DIR/system/etracs-web && docker-compose down
-
 cd $BASE_DIR/web/jobsearch && docker-compose down
 
 cd $RUN_DIR

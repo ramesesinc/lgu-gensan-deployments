@@ -28,4 +28,7 @@ cd $BASE_DIR/appserver/obo && docker-compose up -d
 
 cd $BASE_DIR/system/gdx-client && docker-compose up -d
 
+
+cd $BASE_DIR/web/jobsearch && docker-compose up -d
+
 cd $RUN_DIR

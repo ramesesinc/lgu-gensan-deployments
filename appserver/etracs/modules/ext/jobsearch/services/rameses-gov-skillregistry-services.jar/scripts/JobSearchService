@@ -1,0 +1,190 @@
+import com.rameses.annotations.*;
+import com.rameses.common.MediaFile;
+import java.util.*;
+
+class JobSearchService 
+{
+
+	@Service("DateService")
+	def dtSvc;
+
+	@Service("OrgService")
+	orgSvc;
+
+	@DataContext("entityindividual")
+	def entity;
+
+	@DataContext("entityid")
+	def entityid;
+
+	@DataContext("entity_education")
+	def education;
+
+	@DataContext("entity_eligibility")
+	def eligibility;
+
+	@DataContext("entity_jobpreference_occupation")
+	def occupation;
+
+	@DataContext("entity_jobpreference_worklocation")
+	def worklocation;
+
+	@DataContext("entity_languageproficiency")
+	def languagepro;
+
+	@DataContext("entity_skill")
+	def skill;
+
+	@DataContext("entity_training")
+	def training;
+
+	@DataContext("entity_workexperience")
+	def workexperience;
+
+	@DataContext("educationallevel")
+	def educationallevel;
+
+	@DataContext("language")
+	def language;
+
+	@DataContext("address_local")
+	def local;
+
+	@DataContext("address_abroad")
+	def abroad;
+
+	@DataContext("jobtitle")
+	def jobtitle;
+
+	@DataContext("course")
+	def course;
+
+	@DataContext("dataentry")
+	def dataentry;
+
+	@ActiveDB("nsrp_entity")
+	def em1;
+
+	@ActiveDB(value="nsrp_skill", em="skill")
+	def em2;
+
+	@ProxyMethod
+	def search(searchtext){
+		searchtext = searchtext ? "%" + searchtext + "%" : "%";
+		def entityids = "('" + em2.getEntitySearchResultID(['searchtext':searchtext]).collect{it.entityid}.join("','") + "')";
+		def data = [];
+		def list = em1.getSearchResult(['entityids':entityids,'searchtext':searchtext]);
+		list.each{
+			data << getProfile(it.objid);
+		}
+		return data.sort{it.name};
+	}
+
+	@ProxyMethod
+	def advanceSearch(criteria){
+		if(!criteria) throw new Exception("Search criteria is required!");
+		criteria.entityids = "('" + em1.getAdvanceSearchResult(criteria)?.collect{it.objid}.join("','") + "')";
+		def data = [];
+		def list = em2.getAdvanceEntitySearchResultID(criteria);
+		list.each{
+			data << getProfile(it.objid);
+		}
+		return data.sort{it.name};
+	}
+
+	@ProxyMethod
+	def getProfile(id){
+		def profile = entity.find(['objid':id]).first();
+		profile.id = entityid.find(['entityid':id]).list();
+		if ( profile.birthdate ) {
+			profile.age = dtSvc.calculateAge(profile.birthdate);	
+		}
+		
+		profile.jobpreferenceoccupation = occupation.find(['entityid':id]).list();
+		profile.jobpreferencelocation = worklocation.find(['entityid':id]).list();
+		profile.language = languagepro.find(['entityid':id]).list();
+		profile.education = education.find(['entityid':id]).list();
+		profile.eligibility = eligibility.find(['entityid':id]).list();
+		profile.experience = workexperience.find(['entityid':id]).list();
+		profile.training = training.find(['entityid':id]).list();
+		profile.skill = skill.find(['entityid':id]).list();
+		profile.hasphoto = ( profile.photo != null ); 
+		profile.remove('photo'); 
+		profile.remove('thumbnail'); 
+		return profile;
+	}
+
+	@ProxyMethod
+	public def saveProfile( data ) {
+ 		if ( !data ) throw new Exception("Data is required");
+
+ 		println '>> ' + data; 
+ 		if ( true ) return null; 
+
+		/*
+		def map = [:]
+		map.dtcreated = dtSvc.getServerDate();
+		map.data = data;
+		return dataentry.create(map); 
+		*/
+	}
+
+	@ProxyMethod
+	def getEducationalLevels(){
+		return educationallevel.list();
+	}
+
+	@ProxyMethod
+	def getLanguages(){
+		return language.list();
+	}
+
+	@ProxyMethod
+	def getLocalAddresses(){
+		return local.list();
+	}
+
+	@ProxyMethod
+	def getNonLocalAddresses(){
+		return abroad.list();
+	}
+
+	@ProxyMethod
+	def getJobTitles(){
+		return jobtitle.list();
+	}
+
+	@ProxyMethod
+	def getJobTitleCount(){
+		return em2.getJobTitleCount().sort{ it.counter }.reverse();
+	}
+
+	@ProxyMethod
+	def getCourses(){
+		return course.list();
+	}
+
+	@ProxyMethod
+	def getBarangays(){
+		return orgSvc.getList(['orgclass':'BARANGAY']);
+	}
+
+	@ProxyMethod
+	def getPhoto( o ){
+		def id = o; 
+		if ( o instanceof Map ) {
+			id = o.id; 
+		}
+
+		def data = entity.select('photo').find(['objid':id]).first();
+		if ( data?.photo ){ 
+			def mf = new MediaFile(); 
+			mf.setContentType('image/jpg');
+			mf.setContent( data.photo ); 
+			return mf;  
+		//	return new sun.misc.BASE64Encoder().encode(data.photo);	
+		}
+		return null;
+	}
+	
+}

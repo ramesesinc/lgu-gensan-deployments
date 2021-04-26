@@ -1,0 +1,10 @@
+<schema>
+	<element tablename="obo_lookupvalue">
+		<field name="objid" primary="true" />
+		<field name="listname" />
+		<field name="key" caption="Key" maxWidth="150"/>
+		<field name="title" caption="Title" />
+		<field name="system" />		
+	</element>
+</schema>
+		

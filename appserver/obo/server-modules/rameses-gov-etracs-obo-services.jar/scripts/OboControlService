@@ -25,9 +25,10 @@ class OboControlService {
 
 	@ProxyMethod
 	public def create( def p ) {
-		if(!p.objid ) throw new Exception("objid is required");
-		if(!p._schemaname) throw new Exception("schemaname is required");
-		if(!p.doctypeid) throw new Exception("doctypeid is required");
+		if(!p.objid ) throw new Exception("objid is required in OboControlService.create");
+		if(!p._schemaname) throw new Exception("schemaname is required in OboControlService.create");
+		if(!p.appid) throw new Exception("appid is required in OboControlService.create");		
+		if(!p.doctypeid) throw new Exception("doctypeid is required in OboControlService.create");
 
 		def appEm = dynEm.lookup( p._schemaname );
 		def app = appEm.find( [objid: p.objid] ).first();			
@@ -65,6 +66,7 @@ class OboControlService {
 
 		def u = [:];
 		u.state = 1;
+		u.appid = p.appid;
 		u.issuedby = [ objid: env.USERID, name: env.FULLNAME ];
 		u.dtissued = dateSvc.getServerDate();
 		u.doctypeid = p.doctypeid;

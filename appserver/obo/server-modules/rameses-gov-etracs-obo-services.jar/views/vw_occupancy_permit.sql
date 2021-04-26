@@ -34,6 +34,5 @@ INNER JOIN occupancy_permit_task t ON op.taskid = t.taskid
 INNER JOIN obo_occupancy_type ot ON op.occupancytypeid = ot.objid 
 INNER JOIN obo_occupancy_type_division od ON ot.divisionid = od.objid 
 INNER JOIN obo_occupancy_type_group og ON od.groupid = og.objid 
-LEFT JOIN obo_control ctl ON op.controlid=ctl.objid
-
+LEFT JOIN obo_control pmt ON ctl.appid=a.objid AND ctl.doctypeid = 'OCCUPANCY_PERMIT' 
 

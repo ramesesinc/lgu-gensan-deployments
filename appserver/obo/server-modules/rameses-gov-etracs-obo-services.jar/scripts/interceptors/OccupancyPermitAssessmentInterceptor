@@ -34,14 +34,15 @@ class OccupancyPermitAssessmentInterceptor {
 		def req = [:];
 		req.factBuilder = o.factBuilder;
 		req.rulename = "oboassessment";
-		req.params = [infos: o.infos];
+		req.params = [rulename: "oboassessment"];
 		req.include_items = false;
 
 		def res = billingRuleSvc.execute( req );
 
 		def items = [];
-		res.billitems.findAll{ it.billcode && it.item == null && it.amount > 0 }.each {
+		res.billitems?.findAll{ it.billcode && it.item == null && it.amount > 0 }.each {
 			def p = itemAcctEm.find( [objid: it.billcode ] ).first();
+			if(!p) throw new Exception("Item code " + it.billcode + " not found in item account");
 			it.item = p;
 			if(o.parentid) it.parentid = o.parentid;
 			it.amtpaid = 0;
@@ -64,21 +65,12 @@ class OccupancyPermitAssessmentInterceptor {
 		mapp.height = vapp.actualheight;
 		mapp.numunits = vapp.actualnumunits;
 		mapp.totalfloorarea = vapp.actualtotalfloorarea;
-		mapp.zoneclass = vapp.bldgpermit?.zoneclass;
-		mapp.zone = vapp.bldgpermit?.zone;
 
 		//throw new Exception("calculate occupancy fee assessment fired");
 		def infos = [];
 		def factBuilder = new FactBuilder();
 		factBuilder.facts << new BuildingInfo( mapp ); 
         factBuilder.facts << new OccupancyType( vapp.occupancytype );
-
-		factBuilder.variableInfoProvider = new DefaultVariableInfoProvider(
-			schemaName:"obo_variable",
-			createDecimalFact: { return new OboDecimalInfo() },
-			createIntegerFact: { return new OboIntegerInfo() },
-			createBooleanFact: { return new OboBooleanInfo() }
-		);
 
 		if( o.parentid ) {
 			def sd = subdocEm.find([objid: o.parentid ] ).first();	
@@ -94,7 +86,14 @@ class OccupancyPermitAssessmentInterceptor {
 			factBuilder.facts << new OboDocument( doctype: "OCCUPANCY_PERMIT" );
 		}
 
-		result.items = doAssessment( [appid: o.appid, parentid: o.parentid, factBuilder: factBuilder, infos: infos] );
+		infos.each {
+			if( it.datatype == "decimal" ) 	    factBuilder.facts << new OboDecimalInfo(it);
+			else if( it.datatype == "integer" ) factBuilder.facts << new OboIntegerInfo(it);
+			else if( it.datatype == "boolean" ) factBuilder.facts << new OboBooleanInfo(it);
+			else if( it.datatype == "lookup" )  factBuilder.facts << new OboLookupInfo(it);
+		}
+
+		result.items = doAssessment( [appid: o.appid, parentid: o.parentid, factBuilder: factBuilder] );
 	}	
 
 }

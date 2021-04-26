@@ -15,10 +15,12 @@ AND dt.issuetype = 3
 [findDocsToReleaseCount]
 SELECT COUNT(*) AS count    
 FROM occupancy_permit_doc bs 
+INNER JOIN occupancy_permit oc ON bs.appid = oc.objid 
+INNER JOIN occupancy_permit_task ot ON oc.taskid = ot.taskid  
 INNER JOIN obo_doctype od ON bs.doctypeid = od.objid
 LEFT JOIN obo_section os ON od.sectionid=os.objid
 WHERE od.objid = $P{doctypeid} 
-AND bs.state = 1
+AND ot.state = 'releasing'
 AND bs.controlid IS NULL
 AND od.role IN ( ${roles} )  
 
@@ -31,7 +33,7 @@ WHERE od.issuetype = 2
 AND bs.state = 1
 AND bs.controlid IS NULL
 AND od.role IN ( ${roles} )  
-AND IFNULL(os.org_objid, 'root') = $P{orgid}
+AND (CASE WHEN os.org_objid IS NULL THEN 'root' ELSE  os.org_objid END) = $P{orgid}
 
 
 [getSubdocsToEmail]

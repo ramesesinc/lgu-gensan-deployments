@@ -50,9 +50,6 @@ class OccupancytPermitDocFormReportInterceptor {
 		docsub.totalfloorarea = app.totalfloorarea;
 		docsub.height = app.height;
 		docsub.numfloors = app.numfloors;
-		docsub.zone = app.zone;
-		docsub.zoneclass = app.zoneclass;
-
 		
 		//determine the date received
 		docsub.dtreceived = appTaskEm.find([refid: docsub.appid, state:'receiving' ] ).select("enddate").first()?.enddate;		

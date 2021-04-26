@@ -6,6 +6,8 @@ SELECT ai.*,
    ov.unit,
    ov.caption, 
    ov.category, 
-   ov.sortorder 
+   ov.sortorder,
+   ov.lookuplistname,
+   ov.arrayvalues 
 FROM building_permit_info ai 
 INNER JOIN obo_variable ov ON ov.objid = ai.name 

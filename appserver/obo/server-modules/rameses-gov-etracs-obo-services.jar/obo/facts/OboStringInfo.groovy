@@ -1,6 +1,6 @@
 package obo.facts;
 
-public class OboVariableInfo extends OboVariableInfo {
+public class OboStringInfo extends OboVariableInfo {
 
 	public String getValue() {
 		return this.stringvalue;
@@ -10,6 +10,12 @@ public class OboVariableInfo extends OboVariableInfo {
 		this.stringvalue = d;
 	}
 	
+	public OboStringInfo() {}
+
+	public OboStringInfo(def d) {
+		copy(d);
+	}
+
 }
 
 

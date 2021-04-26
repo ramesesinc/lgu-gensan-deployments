@@ -6,6 +6,7 @@ SELECT
    os.org_objid AS org_objid,
    et.title AS type_title,
    et.sortindex AS type_sortindex,
+   et.joinstate AS type_joinstate,
    app.task_state AS app_task_state, 
    t.state AS task_state,
    t.dtcreated AS task_dtcreated,

@@ -18,6 +18,7 @@
 		<field name="approverid" />
 		<field name="refdoc"/>
 		<field name="role"/>
+		<field name="includeinemail" />
 	</element>
 </schema>	
 

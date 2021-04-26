@@ -18,7 +18,12 @@
 		<complex name="parent" ref="vw_building_evaluation" jointype="many-to-one" includefields="type.*" required="false">
 			<key field="parentid" target="objid"/>
 		</complex>	
-		<field name="attachment" />
+		
+		<complex name="checklistitem" ref="obo_checklist_master" jointype="many-to-one" required="false">
+			<key field="checklistitemid" target="objid" />
+		</complex>	
+
+		<complex name="values" serializer="default" required="false"/>
 
 	</element>
 </schema>

@@ -37,7 +37,7 @@ class BuildingPermitAssessmentInterceptor {
 		def req = [:];
 		req.factBuilder = o.factBuilder;
 		req.rulename = "oboassessment";
-		req.params = [infos: o.infos];
+		req.params = [rulebame:"oboassessment"];
 		req.include_items = false;
 
 		def res = billingRuleSvc.execute( req );
@@ -62,21 +62,31 @@ class BuildingPermitAssessmentInterceptor {
 
 		def vapp = vwAppEm.find( [objid: o.appid ] ).first();
 
-        if(! vapp.zoneclass?.objid )
-            throw new Exception("Please specify a zone class first");
-
 		def occ = vapp.occupancytype;
 		def infos = [];
 		def factBuilder = new FactBuilder();
 		factBuilder.facts << new BuildingInfo( vapp ); 
         factBuilder.facts << new OccupancyType( occ );
-		factBuilder.variableInfoProvider = new DefaultVariableInfoProvider(
-			schemaName:"obo_variable",
-			createDecimalFact: { return new OboDecimalInfo() },
-			createIntegerFact: { return new OboIntegerInfo() },
-			createBooleanFact: { return new OboBooleanInfo() }
-		);
 
+        def sd = subdocEm.find([objid: o.parentid ] ).first();	
+		factBuilder.facts << new OboDocument( doctype: sd.doctype.objid );
+		infos = infoSvc.getInfos( [parentid: o.parentid, _schemaname: "vw_building_permit_info" ] );
+		infos.each {
+			if( it.datatype == "decimal" ) 	    factBuilder.facts << new OboDecimalInfo(it);
+			else if( it.datatype == "integer" ) factBuilder.facts <<new OboIntegerInfo(it);
+			else if( it.datatype == "boolean" ) factBuilder.facts << new OboBooleanInfo(it);
+			else if( it.datatype == "lookup" )  factBuilder.facts << new OboLookupInfo(it);
+		}
+
+		if( sd.doctype.objid == "RPT_DOC" ) {
+			//add rpu counts
+			def rpu = new RpuCount();
+			rpu.byownercount = rpuEm.find( [appid: o.appid ] ).select("c:{COUNT( DISTINCT ownerid )}").val();
+			rpu.totalcount = rpuEm.find( [appid: o.appid ] ).select("c:{COUNT(*)}").val();
+			factBuilder.facts << rpu;
+		}
+
+        /*
 		if( o.parentid ) {
 			def sd = subdocEm.find([objid: o.parentid ] ).first();	
 			//this is for subapplications
@@ -93,8 +103,10 @@ class BuildingPermitAssessmentInterceptor {
 			factBuilder.facts << rpu;
 			factBuilder.facts << new OboDocument( doctype: "BUILDING_PERMIT" );
 		}
+		*/
 
-		result.items = doAssessment( [appid: o.appid, parentid: o.parentid, factBuilder: factBuilder, infos: infos] );
+
+		result.items = doAssessment( [appid: o.appid, parentid: o.parentid, factBuilder: factBuilder] );
 	}	
 
 }

@@ -7,7 +7,7 @@
 		<field name="profileid" />
 		<field name="profileno" />
 		<field name="entitytype" />		
-		<field name="name" />		
+		<field name="name" searchable="true"/>		
 		<field name="firstname" required="true"/>
 		<field name="middlename" />
 		<field name="lastname" required="true"/>
@@ -21,7 +21,7 @@
 		<field name="address_street" />
 		<field name="address_subdivision" />
 		<field name="address_barangay_objid" />
-		<field name="address_barangay_name" required="true"/>
+		<field name="address_barangay_name" />
 		<field name="address_citymunicipality" />
 		<field name="address_province" />
 

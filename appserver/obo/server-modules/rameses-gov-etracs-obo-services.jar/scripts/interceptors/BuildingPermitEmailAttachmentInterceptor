@@ -1,0 +1,71 @@
+import com.rameses.annotations.*;
+import java.rmi.server.*;
+
+class BuildingPermitEmailAttachmentInterceptor { 
+
+	@DataContext("vw_building_permit_doc")
+	def vwSubdocEm;
+
+	@DataContext("building_permit_rpu")
+	def rpuEm;
+
+	@Service(value="JasperReportService", connection="rpt")
+	def jasperSvc;
+
+	String outputReportPath = "/apps/server/output/";
+
+	@Before(pattern="JasperEmailQueueService.send", eval="#{args[0].reportid == 'building_permit_email_attachment' }")
+	public void beforeSendEmailQueue( def evt ) {
+		def p = evt.args[0];
+		if(!p.to) throw new Exception("Email must be provided");
+
+		def app = vwSubdocEm.find( [appid: p.refid ] ).where("doctype.objid = 'BUILDING_PERMIT' ").first();
+		if(!app)
+			throw new Exception("Building Permit Document not found");
+
+		p.info = [doctype:app.doctype.title, controlno: app.controlno];
+		p.connection = "obo-email-server";
+		if(!p.to) p.to = app.contact.email;
+	}
+
+    @Before(pattern="JasperReportEmailService.send", eval="#{ args[0].reportid == 'building_permit_email_attachment' }", index=-10000)
+    public void onSendEmail(def evt) {
+        def o = evt.args[0];
+        def refid = o.refid;
+
+        o.attachments = [];
+
+		def doclist = vwSubdocEm.find( [appid: o.refid ] ).where("doctype.includeinemail = 1").select("doctype.objid,objid").list();
+		doclist.each {
+			def z = [:];
+			z.title = it.doctype.objid + ".pdf";
+			z.reportid = "building_permit_doc";
+			z.parameters = [objid: it.objid];
+			o.attachments << z; 
+		}
+
+		def rpus = rpuEm.find([appid: o.refid ]).select( "tdno,taxclearanceid,truecopycertid" ).list();
+ 		rpus.each {
+        	try {
+	        	def res = jasperSvc.generateReport([reportid: "rpttaxclearance", refid: it.taxclearanceid] );
+	        	if(res.tokenid) {
+	        		o.attachments << [title: "TaxClearance_"+it.tdno+".pdf", filename:outputReportPath +res.tokenid + ".pdf" ];
+	        	}
+		        res = jasperSvc.generateReport([reportid: "tdtruecopy", refid: it.truecopycertid] );        	
+		        if( res.tokenid ) {
+	        		o.attachments << [title: "TrueCopyCert_"+it.tdno+".pdf", filename:outputReportPath+res.tokenid+".pdf" ];        	
+		        }
+        	}
+        	catch( ignErr ) {
+        		println "error generating rpt reports for email. " + ignErr.getMessage();
+        	}
+        } 
+
+        //construction signage printout
+		o.attachments <<[ reportid: "building_permit_signage", parameters: [objid:o.refid], title: "ConstructionSignage.pdf" ] 
+
+    } 
+
+
+
+} 

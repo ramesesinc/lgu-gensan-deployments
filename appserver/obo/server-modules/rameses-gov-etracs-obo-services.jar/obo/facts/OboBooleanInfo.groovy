@@ -10,6 +10,12 @@ public class OboBooleanInfo extends OboVariableInfo {
 		this.booleanvalue = d;
 	}
 	
+	public OboBooleanInfo(){;}
+
+	public OboBooleanInfo(def d){
+		copy(d);
+	}
+
 }
 
 

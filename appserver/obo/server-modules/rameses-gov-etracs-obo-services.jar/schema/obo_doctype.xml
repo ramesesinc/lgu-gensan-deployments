@@ -37,7 +37,7 @@
 
 		<field name="system"/>
 		<field name="role"/>
-
+		<field name="includeinemail"/>
 
 		<complex name="endorser" ref="sys_signature" jointype="many-to-one" required="false" includefields="userid,displayname,position">
 			<key field="endorserid" target="objid"/>

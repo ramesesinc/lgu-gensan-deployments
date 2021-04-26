@@ -51,3 +51,5 @@ services:
 
       - ../../_custom/env.conf:/apps/server/public/resources/custom.conf
       - ../../_custom/module-client:/apps/server/public/resources/downloads/modules/custom
+
+      - ../../appserver/obo/module-client:/apps/server/public/resources/downloads/modules/obo

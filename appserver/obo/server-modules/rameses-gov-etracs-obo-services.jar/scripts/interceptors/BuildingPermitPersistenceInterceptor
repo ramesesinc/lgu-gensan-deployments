@@ -24,6 +24,9 @@ class BuildingPermitPersistenceInterceptor {
 	@DataContext("building_permit_doc")
 	def subdocEm;
 
+	@DataContext("vw_building_permit_doc")
+	def vwDocEm;
+
 	@DataContext("building_permit_requirement")
 	def reqEm;
 
@@ -130,7 +133,19 @@ class BuildingPermitPersistenceInterceptor {
     //create permit for capture
     private def savePermit( def app ) {
     	if(!app.permitno) return null;
-    	def doctype = doctypeEm.find( [objid: "BUILDING_PERMIT"] ).first();
+
+    	//find the permit doc.
+    	def bdoc = vwDocEm.find( [appid: app.objid ] ).where( "doctype.objid = 'BUILDING_PERMIT' " ).first();
+    	if(!bdoc) {
+    		bdoc = [:];
+			bdoc.appid = app.objid;
+			bdoc.doctype = doctypeEm.find( [objid: "BUILDING_PERMIT"] ).first();
+			bdoc.amount = 0;
+			bdoc.state = 0;
+			bdoc = subdocEm.create( bdoc );			
+    	}
+
+    	def doctype = bdoc.doctype;
 		def bp = [:];	
 		bp.appid = app.objid;
 		bp.doctype = doctype;	
@@ -144,7 +159,9 @@ class BuildingPermitPersistenceInterceptor {
 		bp.endorserid = doctype.endorserid;
 		bp.approverid = doctype.approverid;
 		bp.reportheader = doctype.reportheader;
-		return controlEm.create( bp );
+		def ctl = controlEm.create( bp );
+		subdocEm.find([objid: bdoc.objid] ).update( [controlid: ctl.objid] );	
+		return ctl;
     }
 
     //save payment
@@ -245,6 +262,18 @@ class BuildingPermitPersistenceInterceptor {
 		}
     }
 
+    private def getTxnType( def app ) {
+    	def occupancytype = app.occupancytype;
+		def txntype = 'COMPLEX';
+		if (occupancytype.group.objid == 'A' && app.totalfloorarea <= 1500 && app.numfloors <= 3) 
+			txntype = "SIMPLE";
+		else if (occupancytype.group.objid == 'E' && app.totalfloorarea <= 1500 && app.numfloors <= 2) 
+			txntype = "SIMPLE";
+		else if (occupancytype.group.objid == 'F' && app.totalfloorarea <= 1500) 
+			txntype = "SIMPLE";
+		return txntype;	
+    }
+
 	@Before(pattern="PersistenceService.create", eval="#{ args[0]._schemaname == 'building_permit' }")
 	public void beforeCreateApplication(def evt) {
 		def app = evt.args[0];
@@ -265,7 +294,6 @@ class BuildingPermitPersistenceInterceptor {
 		app.objid = "BAPP" + new UID();
 		app.orgcode = env.ORGID;
 		app.occupancytypeid = app.occupancytype?.objid;
-		app.zoneclassid = app.zoneclass?.objid;
 		app.supervisorid = app.supervisor?.objid;
 		app.apptype = app.apptype?.toUpperCase();
 
@@ -284,6 +312,7 @@ class BuildingPermitPersistenceInterceptor {
 		app.createdby = [objid: env.USERID, name: env.FULLNAME];
 		app.dtcreated = dateSvc.getServerDate();
 		app.fixedcost = calcFixedCost( app ); 
+		app.txntype = getTxnType( app );
 	}
 
 	@After(pattern="PersistenceService.create", eval="#{ args[0]._schemaname == 'building_permit' }")
@@ -295,6 +324,12 @@ class BuildingPermitPersistenceInterceptor {
 		entityEm.find( [objid: app.applicant.objid ] ).update( [appid: app.objid] );
 
 		if( app.txnmode == "CAPTURE" ) {
+			if( app.task.state == 'requirement-verification' ) {
+				saveRequirements( app );
+			}
+			if( app.task.state != 'end') {
+				saveInitialDocuments( app );
+			}
 			def tsk = saveTask( app );
 			def permit = savePermit( app );
 			savePayment( app );
@@ -302,13 +337,6 @@ class BuildingPermitPersistenceInterceptor {
 			u.taskid = tsk.taskid;
 			if( permit?.objid ) u.controlid = permit.objid;
 			appEm.find([objid:app.objid]).update( u );
-
-			if( app.task.state == 'requirement-verification' ) {
-				saveRequirements( app );
-			}
-			if( app.task.state != 'end') {
-				saveInitialDocuments( app );
-			}
 		}
 		else {
 			saveEntities( app );
@@ -325,9 +353,6 @@ class BuildingPermitPersistenceInterceptor {
 	@Before(pattern="PersistenceService.update", eval="#{ args[0]._schemaname == 'building_permit' }")
 	public void beforeUpdateApplication(def evt) {
 		def app = evt.args[0];
-		if( app.zoneclass?.objid ) {
-			app.zoneclassid = app.zoneclass.objid;
-		}
 		if( app.supervisor ) {
 			app.supervisorid = app.supervisor.objid;
 		}
@@ -356,6 +381,21 @@ class BuildingPermitPersistenceInterceptor {
 		a.amount = feeEm.find([appid:a.objid]).select("c:{SUM(amount)}").val();
 		a.payment = paymentEm.find([appid: a.objid ]).where("voided=0").orderBy("refdate DESC, refno DESC").first();
 	}
+
+	@Before(pattern="PersistenceService.removeEntity", eval="#{ args[0]._schemaname == 'building_permit' }")
+	public void beforeRemoveApp( def evt ) {
+		def p = evt.args[0];
+		def app = vwAppEm.find( [objid: p.objid]).first();
+		if( app.task.state != 'receiving') 
+			throw new Exception("Application can only be removed in receiving state");
+		appEm.find([objid: app.objid]).update( [applicantid: "{NULL}", taskid: "{NULL}" ] );
+		rpuEm.find( [appid: app.objid] ).delete();
+		appInfoEm.find( [appid: app.objid] ).delete();
+		entityEm.find( [appid: app.objid] ).delete();
+		subdocEm.find( [appid: app.objid] ).delete();	
+		appTaskEm.find( [refid: app.objid] ).delete();
+		reqEm.find( [appid: app.objid] ).delete();
+	} 
 
 
 }

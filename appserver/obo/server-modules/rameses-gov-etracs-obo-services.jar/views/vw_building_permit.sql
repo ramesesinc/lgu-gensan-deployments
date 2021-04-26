@@ -11,9 +11,6 @@ SELECT
    og.objid AS occupancytype_group_objid,
    og.title AS occupancytype_group_title,   
 
-   zc.objid AS zoneclass_objid,
-   zc.title AS zoneclass_title,
-
    LTRIM(CONCAT(
       (CASE WHEN a.location_unitno IS NULL THEN '' ELSE CONCAT(' ', a.location_unitno) END),
       (CASE WHEN a.location_bldgno IS NULL THEN '' ELSE CONCAT(' ', a.location_bldgno) END),
@@ -51,6 +48,5 @@ INNER JOIN sys_wf_node sn ON sn.processname = 'building_permit' AND sn.name = t.
 INNER JOIN obo_occupancy_type bt ON a.occupancytypeid = bt.objid 
 INNER JOIN obo_occupancy_type_division od ON bt.divisionid = od.objid 
 INNER JOIN obo_occupancy_type_group og ON od.groupid = og.objid 
-LEFT JOIN obo_zoneclass zc ON a.zoneclassid = zc.objid 
-LEFT JOIN obo_control pmt ON a.controlid=pmt.objid 
+LEFT JOIN obo_control pmt ON pmt.appid=a.objid AND pmt.doctypeid = 'BUILDING_PERMIT' 
 

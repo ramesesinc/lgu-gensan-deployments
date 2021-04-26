@@ -23,7 +23,7 @@ class OboApplicationClaimStubReportInterceptor {
 		else if(p.reportid.startsWith("occupancy")){
 			appEm = db.lookup( "vw_occupancy_permit" );
 			taskEm = db.lookup( "occupancy_permit_task" );
-			permitType = "OCCUPANCY PERMIT";			
+			permitType = "CERTIFICATE OF OCCUPANCY";			
 		}
 		else {
 			throw new Exception("unsupported claim stub " + p.reportid );
@@ -52,7 +52,8 @@ class OboApplicationClaimStubReportInterceptor {
 			appEm = db.lookup( "vw_occupancy_permit" );
 		}
 		def ea = appEm.find( [objid: p.refid ] ).first();
-		p.to = ea.contact.email;
+		if ( !p.to ) p.to = ea.contact.email;
+		
 		p.info = ea;
 	}
 

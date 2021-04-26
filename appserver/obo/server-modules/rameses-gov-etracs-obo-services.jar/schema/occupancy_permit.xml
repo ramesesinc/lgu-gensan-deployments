@@ -52,8 +52,6 @@
 		<field name="contractor_manager_name" />
 		<field name="contractor_manager_email" />
 
-		<field name="controlid" />
-
 		<field name="actualprojectcost" type="decimal"/>
 		<field name="actualfixedcost" type="decimal"/>
 

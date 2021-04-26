@@ -7,7 +7,7 @@
 		<field name="datatype" required="true" hidden="true"/>
 		<field name="caption" required="true" caption="Caption" searchable="true"/>
 		<field name="description" />
-		<field name="arrayvalues" required="false" visible="false"/>
+		<complex name="arrayvalues" required="false" serializer="default" type="list"/>
 		<field name="system" required="false" defaultValue="0" visible="false"/>
 		<field name="sortorder" required="true" />
 		<field name="category" hidden="true"/>
@@ -19,6 +19,7 @@
 			<key field="occupancytypeid" target="objid" />
 		</complex>	
 
+		<field name="lookuplistname"/>
 	</element>
 
 </schema>

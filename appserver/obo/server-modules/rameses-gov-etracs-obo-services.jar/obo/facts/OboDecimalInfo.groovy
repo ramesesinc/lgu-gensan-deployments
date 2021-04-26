@@ -10,6 +10,13 @@ public class OboDecimalInfo extends OboVariableInfo {
 		this.decimalvalue = d;
 	}
 	
+	public OboDecimalInfo() {}
+	
+	public OboDecimalInfo(def d) {
+		copy(d);
+	}
+
+
 }
 
 

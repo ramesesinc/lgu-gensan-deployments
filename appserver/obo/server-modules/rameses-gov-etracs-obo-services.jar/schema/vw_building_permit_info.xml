@@ -11,6 +11,12 @@
 		<field name="intvalue" />
 		<field name="datevalue" />
 		<field name="booleanvalue" />
+
+		<field name="lookupkey" />
+		<field name="lookupvalue" />
+		<field name="lookuplistname" />
+		<complex name="arrayvalues" type="list" serializer="default" />
+
 		<field name="datatype" />
 		<field name="unit" />
 		<field name="caption" />

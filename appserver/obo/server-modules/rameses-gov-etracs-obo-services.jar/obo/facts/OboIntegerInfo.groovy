@@ -9,6 +9,12 @@ public class OboIntegerInfo extends OboVariableInfo {
 	public void setValue( int d ) {
 		this.intvalue = d;
 	}
+
+	public OboIntegerInfo() {}
+
+	public OboIntegerInfo(def d) {
+		copy(d);
+	}
 	
 }
 

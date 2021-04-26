@@ -1,0 +1,10 @@
+<schema>
+	<element tablename="building_permit_attachment">
+		<field name="objid" primary="true" prefix="BPATTACH"/>
+		<field name="appid" />
+		<field name="parentid" />
+		<complex name="file" ref="sys_file" jointype="many-to-one" required="true">
+			<key field="fileid" target="objid" />
+		</complex>	
+	</element>
+</schema>

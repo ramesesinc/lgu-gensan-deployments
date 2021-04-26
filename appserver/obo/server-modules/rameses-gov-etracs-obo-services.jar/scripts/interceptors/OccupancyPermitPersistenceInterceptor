@@ -77,6 +77,18 @@ class OccupancyPermitPersistenceInterceptor {
 		return costSvc.calc( param );
 	}
 
+	private def getTxnType( def app ) {
+    	def occupancytype = app.occupancytype;
+		def txntype = 'COMPLEX';
+		if (occupancytype.group.objid == 'A' && app.actualtotalfloorarea <= 1500 && app.actualnumfloors <= 3) 
+			txntype = "SIMPLE";
+		else if (occupancytype.group.objid == 'E' && app.actualtotalfloorarea <= 1500 && app.actualnumfloors <= 2) 
+			txntype = "SIMPLE";
+		else if (occupancytype.group.objid == 'F' && app.actualtotalfloorarea <= 1500) 
+			txntype = "SIMPLE";
+		returns txntype;	
+    }
+
 	//check if 	professional exists in the obo_professional database
     private void saveProfessional( def o ) {
     	if(!o.objid) return;
@@ -214,12 +226,14 @@ class OccupancyPermitPersistenceInterceptor {
     }
 
     private void saveProfessionals( def app ) {
+    	/*
     	println "save professionals";
     	if(!app.professionals) return;
     	println "start saving professionals";
     	app.professionals.each {
     		println it;
     	}
+    	*/
     }
 
  	@Before(pattern="PersistenceService.create", eval="#{ args[0]._schemaname == 'occupancy_permit' }")
@@ -256,7 +270,9 @@ class OccupancyPermitPersistenceInterceptor {
 
 		app.createdby = [objid: env.USERID, name: env.FULLNAME];
 		app.dtcreated = dateSvc.getServerDate();
+
 		app.fixedcost = calcFixedCost( app ); 
+		app.txntype = getTxnType( app );
 	}
 
 	@After(pattern="PersistenceService.create", eval="#{ args[0]._schemaname == 'occupancy_permit' }")
@@ -312,6 +328,7 @@ class OccupancyPermitPersistenceInterceptor {
 		}
 	}
 
+
 	@After(pattern="PersistenceService.read", eval="#{ args[0]._schemaname == 'vw_occupancy_permit' }")
 	public void afterOpenApplication(def evt) {
 		def p = evt.args[0];
@@ -323,5 +340,20 @@ class OccupancyPermitPersistenceInterceptor {
 		a.payment = paymentEm.find([appid: a.objid ]).where("voided=0").orderBy("refdate DESC, refno DESC").first();
 	}
 
+
+	@Before(pattern="PersistenceService.removeEntity", eval="#{ args[0]._schemaname == 'occupancy_permit' }")
+	public void beforeRemoveApp( def evt ) {
+		def p = evt.args[0];
+		def app = vwAppEm.find( [objid: p.objid]).first();
+		if( app.task.state != 'receiving') 
+			throw new Exception("Application can only be removed in receiving state");
+
+		appEm.find([objid: app.objid]).update( [applicantid: "{NULL}", taskid: "{NULL}" ] );
+		appInfoEm.find( [appid: app.objid ] ).delete();
+		entityEm.find( [appid: app.objid] ).delete();
+		subdocEm.find( [appid: app.objid] ).delete();	
+		appTaskEm.find( [refid: app.objid] ).delete();
+		reqEm.find( [appid: app.objid] ).delete();
+	} 
 
 }

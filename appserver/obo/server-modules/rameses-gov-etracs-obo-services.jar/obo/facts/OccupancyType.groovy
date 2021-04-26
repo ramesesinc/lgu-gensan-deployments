@@ -11,7 +11,6 @@ public class OccupancyType {
 
 	//need to deprecate
     String bldgtype; //deprecate this		
-    String zoneclass;	
 
     public OccupancyType() {}
 

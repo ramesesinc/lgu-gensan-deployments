@@ -1,0 +1,22 @@
+import com.rameses.annotations.*;
+
+
+class OccupancyPermitInspectionTask {
+	
+	@DataContext("vw_occupancy_permit")
+	def vwOccupancyPermit;
+	
+	@Schedule(interval=1, timeUnit="MINUTES")
+	public void activateTasks( def tsk ) {
+		def activateTasks = vwOccupancyPermit.select("objid,appno,inspectiondate").where( "inspectiondate < NOW() AND task.state LIKE '%-wait%' " ).list();
+		if(activateTasks) {
+			activateTasks.each {
+				println "firing tasks...." + it;
+			}
+		}
+
+		
+	}
+
+
+}

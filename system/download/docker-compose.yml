@@ -30,7 +30,7 @@ services:
 
 
   node-download-server:
-    image: ramesesinc/node-download-server:0.0.2
+    image: ramesesinc/node-download-server:0.0.3
     container_name: node-download-server
     restart: always
     logging:

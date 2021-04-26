@@ -1,0 +1,21 @@
+<schema>
+	<element tablename="obo_taskitem_type">
+		<field name="objid" primary="true" visible="true"/>
+		<field name="apptype" />
+		<field name="title" />
+		<field name="sortindex" />
+		<field name="activationstate" />
+		<field name="joinstate" />
+		<field name="required" />
+
+		<complex name="customroles" ref="obo_taskitem_type_role" jointype="one-to-many" required="false">
+			<key field="objid" target="typeid" />
+		</complex>	
+
+		<complex name="section" ref="obo_section" jointype="many-to-one" required="false">
+			<key field="sectionid" target="objid" />
+		</complex>	
+
+	</element>
+</schema>	
+

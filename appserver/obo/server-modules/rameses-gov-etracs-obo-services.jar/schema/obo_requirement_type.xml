@@ -8,6 +8,6 @@
 		<field name="objid" primary="true" visible="true"/>
 		<field name="title" />
 		<field name="sortorder" />
-		<field name="permittype" />
+		<field name="apptype" />
 	</element>
 </schema>

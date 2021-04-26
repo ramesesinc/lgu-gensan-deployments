@@ -1,0 +1,53 @@
+import com.rameses.annotations.*;
+
+
+class OboAppProgressService {
+	
+
+	/* 
+	  Parameters:
+	  apptype = building or occupancy
+	  refno = could be trackingno or appno
+	*/
+
+	@ProxyMethod
+	public def getInfo(  def o )  {
+		if(!o.apptype) throw new Exception("apptype is required in OboAppProgressService.getInfo")
+		if(!o.refno) throw new Exception("refno is required in OboAppProgressService.getInfo")
+
+		//build return values:
+		def r = [:];
+		r.trackingno = "XXTRACKNO";
+		r.appno = "Application";
+		r.apptitle = "Building Permit Application";
+		r.appdate = "2021-01-01";		
+		r.txntype = "SIMPLE"
+		r.applicant = [name:"NAZARENO, ELMO"];
+		r.title = "CONSTRUCTION OF 2BR APARTMENT"
+		r.location = [text:"DAWIS EXT. LEGAZPI CITY"];
+		r.tasks = [];
+
+		def z1 =[ title:"Zoning Evaluation", status: "Completed", startdate:"2021-01-01 08:00", enddate:"2021-01-02 10:30", hours:8, subtasks: []  ];
+		z1.subtasks << [ section:"ZONING", title:"Evaluation", status: "Completed", startdate: "2021-01-01 08:00", enddate: "2021-01-01 08:15", hours: 0.25 ]
+		z1.subtasks << [ section:"ZONING", title:"Review", status: "Completed", startdate: "2021-01-01 08:15", enddate: "2021-01-01 17:00", hours: 7 ]
+		z1.subtasks << [ section:"ZONING", title:"Approval", status: "Completed", startdate: "2021-01-01 17:00", enddate: "2021-01-02 10:30", hours: 0.75 ]
+
+		r.tasks << z1;
+
+		def z2 =[ title:"Trade Evaluation", status: "Ongoing", startdate:"2021-01-01 08:00", enddate:"2021-01-02 10:30", hours:8, subtasks: []  ];
+		z2.subtasks << [ section:"ARCHITECTURAL", title:"Evaluation", status: "Completed", startdate: "2021-01-01 08:00", enddate: "2021-01-01 08:15", hours: 0.25 ]
+		z2.subtasks << [ section:"ARCHITECTURAL", title:"Review", status: "Completed", startdate: "2021-01-01 08:15", enddate: "2021-01-01 17:00", hours: 7 ]
+		z2.subtasks << [ section:"ARCHITECTURAL", title:"Approval", status: "Completed", startdate: "2021-01-01 17:00", enddate: "2021-01-02 10:30", hours: 0.75 ]
+
+		z2.subtasks << [ section:"FIRE SAFETY", title:"Evaluation", status: "Completed", startdate: "2021-01-01 08:00", enddate: "2021-01-01 08:15", hours: 0.25 ]
+		z2.subtasks << [ section:"FIRE SAFETY", title:"Review", status: "Completed", startdate: "2021-01-01 08:15", enddate: "2021-01-01 17:00", hours: 7 ]
+		z2.subtasks << [ section:"FIRE SAFETY", title:"Approval", status: "Completed", startdate: "2021-01-01 17:00", enddate: "2021-01-02 10:30", hours: 0.75 ]
+
+
+		r.tasks << z2;
+		return r;
+	}
+
+
+
+}

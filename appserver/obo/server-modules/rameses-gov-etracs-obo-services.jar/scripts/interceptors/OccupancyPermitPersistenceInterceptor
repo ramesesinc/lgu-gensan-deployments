@@ -15,7 +15,7 @@ class OccupancyPermitPersistenceInterceptor {
 	@DataContext("vw_occupancy_permit")
 	def vwAppEm;
 
-	@DataContext("occupancy_permit_entity")
+	@DataContext("obo_app_entity")
 	def entityEm;
 
 	@DataContext("occupancy_permit_payment")
@@ -48,7 +48,7 @@ class OccupancyPermitPersistenceInterceptor {
 	@DataContext("occupancy_permit_info")
 	def appInfoEm;
 
-	@Service("OboAppnoGeneratorService")
+	@Service("OboApplicationService")
 	def appSvc;
 
 	@Service("OboConstructionCostRuleService")
@@ -166,7 +166,7 @@ class OccupancyPermitPersistenceInterceptor {
 
 	//save all documents that are auto create that does not exist above
     private void saveInitialDocuments( def app ) {
-		subdocEm.getSubdocsToAutoCreate( [apptype:'occupancy', appid: app.objid ]).each {
+		subdocEm.getDocsToAutoCreate( [apptype:'occupancy', appid: app.objid ]).each {
 			def sd = [:];
 			sd.appid = app.objid;
 			sd.doctype = [objid: it.objid];
@@ -178,7 +178,7 @@ class OccupancyPermitPersistenceInterceptor {
 
 	//save the requirements
     private void saveRequirements( def app ) {
-		def reqTypes = reqTypeEm.where("permittype = 'occupancy_permit' ").list();
+		def reqTypes = reqTypeEm.where("apptype = 'occupancy_permit' ").list();
 		reqTypes.each {
 			def r = [:];
 			r.appid = app.objid;
@@ -242,7 +242,7 @@ class OccupancyPermitPersistenceInterceptor {
 		if(!app.applicant) throw new Exception("Applicant is required");
 		if( app.txnmode == "CAPTURE" ) {
 			if(!app.appno) {
-				app.appno = appSvc.generate([apptype:"occupancy_permit"]);
+				app.appno = appSvc.accept([apptype:"occupancy"]);
 			}	
 		}
 		if(app.trackingno) {

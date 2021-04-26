@@ -33,7 +33,7 @@
 			<key field="bldgpermitid" target="objid" />
 		</complex>
 
-		<complex name="applicant" ref="occupancy_permit_entity" jointype="many-to-one" required="true">
+		<complex name="applicant" ref="obo_app_entity" jointype="many-to-one" required="true">
 			<key field="applicantid" target="objid" />
 		</complex>	
 

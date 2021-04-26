@@ -1,0 +1,39 @@
+import com.rameses.annotations.*; 
+
+class OboPtrPaymentService {
+
+	@Service(value="obo/OboProfessionalService", connection="cloud-server")
+    def cloudSvc;
+
+	@ProxyMethod
+	public def verifyPayment( eor ) {
+		def data = eor.info.data;
+		return [
+			professional: data.professional,
+			partner: data.partner,
+			amount: eor.amount,
+			items: data.items,
+		]
+	}
+
+	@ProxyMethod
+	public def postPayment(eor, bill) { 
+		def ptr = [:];
+		ptr.refno = eor.receiptno;
+		ptr.dtissued = eor.receiptdate;
+		ptr.placeissued = bill.partner.title;
+
+		def profinfo = [
+			objid: bill.professional.objid,
+			ptr: ptr,
+		]
+		cloudSvc.updateProfessional(profinfo);
+	}
+
+    
+    @ProxyMethod
+	public def getEmailAttachments( eor ) {
+        return []
+    }	
+
+}

@@ -1,0 +1,9 @@
+<schema>
+	<element tablename="obo_app_attachment">
+		<field name="objid" primary="true" prefix="OBOATTACH"/>
+		<field name="appid" />
+		<field name="parentid" />
+		<field name="title" />
+		<field name="fileid" />
+	</element>
+</schema>

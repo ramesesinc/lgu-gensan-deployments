@@ -42,8 +42,8 @@ SELECT
    pmt.reportheader 
 
 FROM building_permit a 
-INNER JOIN building_permit_entity ae ON a.applicantid = ae.objid
 INNER JOIN building_permit_task t ON a.taskid = t.taskid 
+INNER JOIN obo_app_entity ae ON a.applicantid = ae.objid
 INNER JOIN sys_wf_node sn ON sn.processname = 'building_permit' AND sn.name = t.state 
 INNER JOIN obo_occupancy_type bt ON a.occupancytypeid = bt.objid 
 INNER JOIN obo_occupancy_type_division od ON bt.divisionid = od.objid 

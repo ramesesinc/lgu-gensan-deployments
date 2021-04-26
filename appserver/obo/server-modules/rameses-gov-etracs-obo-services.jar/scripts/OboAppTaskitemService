@@ -1,0 +1,213 @@
+import com.rameses.annotations.*;
+
+class OboAppTaskitemService {
+	
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("MenuNotificationService")
+	def notifySvc;
+
+	@Service("WorkflowTaskService")
+	def wfSvc;
+
+	@DataContext("vw_obo_app")
+	def vwAppEm;
+
+	@DataContext("obo_app_taskitem")
+	def taskitemEm;
+
+	@DataContext("obo_app_taskitem_task")
+	def taskitemTaskEm;
+
+	@DataContext("vw_obo_app_taskitem")
+	def vwTaskitemEm;
+
+	@DataContext("obo_taskitem_type")
+	def taskItemTypeEm;
+
+	@DataContext("obo_app_doc")
+	def appDocEm;
+
+	@DataContext("obo_app_taskitem_finding")
+	def findingEm;
+
+	@Env
+	def env;
+
+	//this is when creating a task on the fly 
+	@ProxyMethod
+	public def create(def o ) {
+		if(!o.appid) throw new Exception("appid is required");
+		if(!o.typeid) throw new Exception("typeid is required");
+
+		def app = vwAppEm.find( [objid: o.appid ]).first();
+		if(!app) throw new Exception("Application not found");
+
+		o = taskitemEm.create( o )
+
+		//fire the workflow...
+		def f = [:];
+		f.processname = 'obo_app_taskitem';
+		f.notificationid = 'obo_app_taskitem:' + o.typeid.toLowerCase();
+		f.refid = o.objid;
+		f.startdate = dateSvc.getServerDate();
+		f.info = [:];
+		wfSvc.start( f );
+
+		//notify
+		def list = [];
+		list << "obo_app_taskitem:" + o.typeid.toLowerCase();
+		list << "obo";
+		notifySvc.notify( list );		
+	} 
+
+	@ProxyMethod
+	public def getList( def o ) {
+		def wStr = "";
+		if( o.viewtype == "open" ) {
+			wStr = " task.state NOT IN ('end','for-revision') ";
+		}
+		else if( o.viewtype == "completed" ){
+			wStr = " task.state = 'end' ";
+		}
+		else {
+			wStr = "1=1"
+		}
+		return vwTaskitemEm.find( [appid: o.appid ]).where(wStr).orderBy("type.sortindex").list();
+	}
+
+	@ProxyMethod
+	public def removeTaskitem( def p  ) {
+		def e = vwTaskitemEm.find( [objid: p.objid ]).first();
+		taskitemEm.find( [objid: p.objid ] ).update( [ taskid: "{NULL}" ] );
+		taskitemTaskEm.find( [refid: p.objid] ).delete();
+		taskitemEm.find( [objid: p.objid ]).delete();
+		def list = [];
+		list << "obo_app_taskitem:" + e.typeid.toLowerCase();
+		list << "obo";
+		notifySvc.notify( list );
+	}
+
+	//CALLED BY RuleAction
+	@ProxyMethod
+	public void activateTaskitems( def o ) {
+		if(!o.appname) throw new Exception("appname is required in OboAppTaskitemService.activateTaskItems");
+		if(!o.appid) throw new Exception("appid is required in OboAppTaskitemService.activateTaskItems");
+		if(!o.state) throw new Exception("state is required in OboAppTaskitemService.activateTaskItems");
+
+
+		def dt = dateSvc.getServerDate();
+		def notificationList = [];
+
+		def createTask = { v->
+			//check first if it exists. do not create it if it already exists
+			def appTaskitem = vwTaskitemEm.find( [appid: o.appid, typeid: v.objid]).first();
+			if(!appTaskitem) {
+				def m = [:];
+				m.appid = o.appid;
+				m.typeid = v.objid;
+				def t = taskitemEm.create( m );
+				def f = [:];
+				f.processname = 'obo_app_taskitem';
+				f.refid = t.objid;
+				f.startdate = dt;
+				f.info = [:];
+				wfSvc.start(f);	
+				notificationList << "obo_app_taskitem:" + v.objid.toLowerCase();	
+			}
+		}
+
+		def taskTypes = taskItemTypeEm.find( [apptype: o.appname, activationstate: o.state ] ).list();
+		taskTypes.each {
+			if(it.required==1) {
+				createTask( it );
+			}
+			else {
+				def odoc = appDocEm.find( [appid: o.appid] ).where( "doctype.sectionid = :sectionid", [sectionid: it.sectionid ] ).first();
+				if(odoc) {
+					createTask( it );
+				}
+			}
+		};
+
+		env._notificationList = notificationList ;
+	}
+
+	@ProxyMethod
+	public void reactivateTaskitems( def o  ){
+		if(!o.appid) throw new Exception("appid is required in OboAppTaskitemService.reactivateTaskitems");
+		def taskItems = vwTaskitemEm.find( [appid: o.appid]).where("task.state = 'for-revision' ").list();
+		if(!taskItems) return;
+		def dt = dateSvc.getServerDate();
+		def notificationList = [];
+		taskItems.each {
+			def f = [:];
+			f.processname = 'obo_app_taskitem';
+			f.refid = it.objid;
+			f.startdate = dt;
+			f.action = "reactivate";
+			f.info = [:];
+			wfSvc.signal(f);
+			notificationList << "obo_app_taskitem:" + it.typeid.toLowerCase();	
+		}
+		env._notificationList = notificationList;
+	}
+
+
+	@ProxyMethod
+	public void joinMainProcess( def o  ) {
+		if(!o.refid) throw new Exception("refid is required in OboAppTaskitemService.joinMainProcess");	
+		
+		def r = vwTaskitemEm.find( [objid: o.refid ]).first();
+		def state = r.app?.task?.state;
+		def appid = r.appid;
+
+		//check if there are no pending tasks so we can join the main process
+		def str = "type.joinstate = :joinstate AND task.tracktime = 1";
+		boolean exists = vwTaskitemEm.select("1").find( [appid: appid ]).where(str, [joinstate: state]).exists();
+ 		if( !exists ) {
+			def f = [:];
+			f.processname = r.app.processname;
+			f.refid = r.appid;
+			f.startdate = dateSvc.getServerDate();
+			f.info = [appid:r.appid];
+			wfSvc.signal(f);	 		
+ 		}
+
+ 	}
+
+	@ProxyMethod
+	public void closeOboProcessing( def o  ) {
+		if(!o.appid) throw new Exception("appid is required in OboAppTaskitemService.closeOboProcessing");	
+		throw new Exception("Closing OBO Processing here");
+		def list = vwTaskitemEm.find( [appid: o.appid ]).where(" task.state = 'obo-processing' ").list();
+		throw new Exception("list found for obo process " + list*.objid);
+		list.each {
+			def f = [:];
+			f.processname = "obo_app_taskitem";
+			f.refid = it.objid;
+			f.startdate = dateSvc.getServerDate();
+			f.info = [appid:o.appid];
+			wfSvc.signal(f);
+		}
+	} 		
+ 		
+ 	@ProxyMethod
+ 	public def validateHasUncompletedTasks( def o ) {
+ 		if(!o.appid) throw new Exception("appid is required in OboAppTaskitemService.validateAllTasksCompleted");
+ 		def app = vwAppEm.find( [objid: o.appid ]).first();
+
+ 		def state = app.task.state;
+ 		
+		def str = " type.joinstate = :joinstate AND task.tracktime = 1 ";
+		def openList = vwTaskitemEm.find( [appid: o.appid ]).where(str, [joinstate: state]).list();
+
+ 		if(openList) {
+ 			throw new Exception("The following tasks are not yet completed.\n" + openList*.type.title.join("\n") )	 			
+ 		} 
+ 		throw new Exception("Fire uncompleted tasks");
+ 	}
+
+	
+}

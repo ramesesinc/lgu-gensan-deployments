@@ -1,0 +1,159 @@
+import com.rameses.annotations.*;
+import com.rameses.util.*;
+import obo.facts.*;
+import java.text.*;
+import enterprise.utils.*;
+import java.rmi.server.*;
+import treasury.utils.*;
+import treasury.facts.*;
+
+public class OboAppFeeService  {
+
+	@Service("BillingRuleService")
+	def billingRuleSvc;
+
+	@Service("OboAppDocInfoService")
+	def infoSvc;
+
+	@DataContext("obo_app_fee")
+	def feeEm;
+
+	@DataContext("obo_app_doc")
+	def docEm;
+
+	@DataContext("vw_obo_app_doc")
+	def vwDocEm;
+
+	@DataContext("obo_itemaccount")
+	def itemAcctEm;
+
+	@DataContext(dynamic=true)
+	def db;
+
+	@ProxyMethod
+	public def getFees( def o ) {
+		return feeEm.find(o).orderBy("item.sortorder").list();
+	}
+
+	def updateTotals( def o ) {
+		def total = feeEm.find([parentid:o.parentid]).select("c:{SUM(amount)}").val();
+		docEm.find( [objid:o.parentid]).update( [amount: total] );
+		return [amount: total];
+	}
+
+	//This will save the fees and returns the total
+	@ProxyMethod
+	public def saveFees(o) {
+		o.items.each {
+			//delete if there are existing items
+			def zz = feeEm.find( [appid: it.appid, itemid: it.item.objid ] ).first();
+			if( zz ) feeEm.find( [objid: zz.objid] ).delete();
+			feeEm.create( it );
+		}
+		return updateTotals( o );
+	}
+
+	@ProxyMethod
+	public def saveFee(def o ) {
+		if(!o.appid) throw new Exception("appid is required in saveFee");
+		if(o.objid) {
+			feeEm.find( [objid: o.objid] ).update( o );
+		}
+		else {
+			feeEm.create( o );
+		}
+		return updateTotals( o );
+	}
+
+	@ProxyMethod
+	public def removeFee(def o ) {
+		if(o.objid) {
+			def p = feeEm.find( [objid: o.objid ] ).first();
+			if(!p) throw new Exception("Item not found");
+			o.parentid = p.parentid;
+			o.appid = p.appid;
+			feeEm.find( [objid: o.objid] ).delete();
+		}
+		return updateTotals( o );
+	}
+
+	@ProxyMethod
+	public def clearFees(def o ) {
+		if(!o.appid && !o.parentid) throw new Exception("appid or parentid is required in clearFees");
+		feeEm.find( [parentid: o.parentid ]).delete();
+		return updateTotals( o );
+	}
+
+	@ProxyMethod
+	public def assess( def o ) {
+		def sd = docEm.find([objid: o.parentid ] ).first();	
+
+		def appname = "vw_" + sd.doctype.apptype;
+
+		def vwAppEm = db.lookup( appname );
+		def vapp = vwAppEm.find( [objid: sd.appid ] ).first();
+
+		def occ = vapp.occupancytype;
+
+		def infos = [];
+		def factBuilder = new FactBuilder();
+		factBuilder.facts << new BuildingInfo( vapp ); 
+        factBuilder.facts << new OccupancyType( occ );
+
+		factBuilder.facts << new OboDocument( doctype: sd.doctype.objid, appid: sd.appid );
+		infos = infoSvc.getInfos( [parentid: sd.objid ] );
+
+		infos.each {
+			if( it.datatype == "decimal" ) 	    factBuilder.facts << new OboDecimalInfo(it);
+			else if( it.datatype == "integer" ) factBuilder.facts << new OboIntegerInfo(it);
+			else if( it.datatype == "boolean" ) factBuilder.facts << new OboBooleanInfo(it);
+			else if( it.datatype == "lookup" )  factBuilder.facts << new OboLookupInfo(it);
+		}
+
+		def req = [:];
+		req.factBuilder = factBuilder;
+		req.rulename = "oboassessment";
+		req.params = [rulename:req.rulename];
+		req.include_items = false;
+
+		def res = billingRuleSvc.execute( req );
+
+		def items = [];
+		res.billitems.findAll{ it.billcode && it.item == null && it.amount > 0 }.each {
+			def p = itemAcctEm.find( [objid: it.billcode ] ).first();
+			it.item = p;
+			if(o.parentid) it.parentid = o.parentid;
+			it.amtpaid = 0;
+			it.appid = o.appid;
+			it.sortorder = (p.sortorder == null ? 100 : p.sortorder);
+			items << it;			
+		};
+		return [items: items];
+	}
+
+	@ProxyMethod
+	public def assessAll( def o ) {
+		if(!o.appid) throw new Exception("appid is required in OboAppFeeService.assessAll");
+		def docList = vwDocEm.find( [appid: o.appid ]).where( "requirefee=1 AND (amount IS NULL OR amount=0) ").list();
+		docList.each { v->
+			def items = assess( [parentid: v.objid] )?.items;
+			if(items) {
+				items.each {
+					it.appid = v.appid;
+					it.parentid = v.objid;
+				}
+				saveFees( [parentid:v.objid, items: items] );
+			}	
+		}
+	}
+
+	@ProxyMethod
+	public void validateAllFees(def o ) {
+		if(!o.appid) throw new Exception("appid is required in OboAppFeeService.validateAllFees");
+		def docList = vwDocEm.find( [appid: o.appid ]).where( "requirefee=1 AND (amount IS NULL OR amount=0) ").list();
+		if(docList) {
+			throw new Exception("The following document require fees to be assessed: \n" + docList*.doctype.title.join("\n") );
+		}
+	}
+
+}

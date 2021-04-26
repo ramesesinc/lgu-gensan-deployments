@@ -1,0 +1,69 @@
+import com.rameses.annotations.*;
+import com.rameses.util.*;
+import java.rmi.server.*;
+import obo.facts.*;
+import java.text.*;
+import treasury.utils.*;
+import treasury.facts.*;
+
+public class OboAppDocInfoService  {
+
+	@DataContext("obo_app_doc_info")
+	def infoEm;
+
+	@DataContext("vw_obo_app_doc_info")
+	def vwInfoEm;
+
+	@ProxyMethod
+	public void saveInfos( def o ) {
+		o.items.each {
+			if( it.datatype == 'date') it.datevalue = it.value;
+			else if( it.datatype == 'decimal') it.decimalvalue = it.value;
+			else if( it.datatype == 'integer') it.intvalue = it.value;
+			else if( it.datatype == 'boolean') it.booleanvalue = (it.value==true? 1 : 0);
+			else if( it.datatype == 'lookup' ) {
+				it.lookupkey = it.value.objid;
+				it.lookupvalue = ( it.value.key == it.value.title ) ? it.value.key : it.value.key + "-" + it.value.title;
+			}
+			else it.stringvalue = it.value;
+			if( !it.objid ) {
+				it.type = [objid:it.name];
+				infoEm.create(it);
+			}	
+			else {
+				infoEm.find([objid: it.objid ]).update(it);
+			}	
+		}					
+	}
+
+	//this is called by the assessment
+	@ProxyMethod
+	public def getInfos( def o ) {
+		def list = vwInfoEm.find( o ).orderBy("sortorder").list();
+		list.each {
+			if( it.datatype == 'date') it.value = it.datevalue;
+			else if( it.datatype == 'decimal') it.value = it.decimalvalue;
+			else if( it.datatype == 'integer') it.value = it.intvalue;
+			else if( it.datatype == 'boolean')  it.value = ( (it.booleanvalue == 0) ? false: true);
+			else if( it.datatype == 'lookup')  {
+				def lv = [:];
+				def arr = it.lookupvalue.split("-");
+				lv.key = arr[0];
+				lv.title = (arr.length>1) ? arr[1] : arr[0];
+				it.value = [ objid:it.lookupkey,key:lv.key, title:lv.title];			
+			}	
+			else it.value = it.stringvalue;
+		}
+		return list.sort{ it.sortorder };
+	}
+
+	@ProxyMethod
+	public void removeInfos( def o ) {
+		o.items.each {
+			infoEm.find([objid: it.objid ]).delete();
+		}					
+	}
+	
+
+
+}

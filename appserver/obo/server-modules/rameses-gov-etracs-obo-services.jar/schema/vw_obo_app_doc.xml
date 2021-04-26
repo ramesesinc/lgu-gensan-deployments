@@ -1,0 +1,41 @@
+<schema>
+	<element tablename="vw_obo_app_doc">
+		<field name="objid" primary="true"/>
+		<field name="appid" />
+		<field name="state" />
+		<field name="designprofessionalid" />
+		<field name="supervisorid" />
+		<field name="worktypes" />
+		<field name="contractorname" />
+		<field name="remarks" />
+		<field name="amount" />
+		<field name="controlid" />
+		<field name="occupancytypeid" />
+		<field name="projectcost" />
+		<field name="equipmentcost" />
+		<field name="org_objid" />
+		<field name="task_state" />
+		<field name="task_assignee_objid" />
+		<field name="controlno" />
+		<field name="dtissued" />
+		<field name="expirydate" />
+		<field name="issuedby_name" />
+		<field name="issuedby_objid" />
+		<field name="template" />
+		<field name="endorserid" />
+		<field name="approverid" />
+		<field name="sectionid" />
+
+		<complex name="app" ref="vw_obo_app" jointype="many-to-one">
+			<key field="appid" target="objid" />
+		</complex>	
+
+		<complex name="doctype" ref="obo_doctype" jointype="many-to-one">
+			<key field="doctypeid" target="objid" />
+		</complex>	
+
+	</element>
+</schema>	
+
+
+

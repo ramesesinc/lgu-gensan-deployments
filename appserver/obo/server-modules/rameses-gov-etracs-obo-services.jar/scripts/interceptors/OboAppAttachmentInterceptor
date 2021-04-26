@@ -1,0 +1,35 @@
+import com.rameses.annotations.*;
+
+class ObopAppAttachmentInterceptor {
+	
+	@Env
+	def env;
+
+	@DataContext("obo_app_attachment")
+	def attachEm;
+
+	@DataContext("sys_fileitem")
+	def fileItemEm;
+
+	@DataContext("sys_file")
+	def fileEm;
+
+	@Before(pattern="PersistenceService.removeEntity", eval="#{args[0]._schemaname == 'obo_app_attachment' }")
+	public void beforeRemove(def evt) {
+		def o = evt.args[0];
+		def a = attachEm.find( [objid: o.objid]).first();
+		if(a.fileid) {
+			def exists = fileItemEm.find( [parentid: a.fileid] ).exists();
+			if(exists) throw new Exception("Please remove the attachments first");
+			
+			//update the attachment fileid before removing sys_file
+			attachEm.find( [objid: o.objid] ).update([ fileid: "{NULL}" ] );
+
+			//remove sys_files
+			fileEm.find( [objid: a.fileid ] ).delete();
+		}
+	}
+
+
+
+}

@@ -5,13 +5,13 @@ class BuildingPermitService {
 	@DataContext("vw_building_permit")
 	def vwPermitEm;
 
-	@DataContext("building_permit_entity")
+	@DataContext("obo_app_entity")
 	def permitEntity;
 
 	@DataContext("obo_professional_info")
 	def professionalEm;
 
-	@DataContext("vw_building_permit_doc")
+	@DataContext("vw_obo_app_doc")
 	def subdocEm;
 
 	@Service("DateService")

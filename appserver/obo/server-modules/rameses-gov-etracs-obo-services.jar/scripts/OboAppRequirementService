@@ -1,0 +1,112 @@
+import com.rameses.annotations.*; 
+import java.rmi.server.*;
+
+class OboAppRequirementService {
+
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("ControlnoGeneratorService")
+	def controlNoSvc;
+
+	@Service("JasperEmailQueueService")
+    def emailSvc;
+
+	@DataContext("obo_doctype")
+	def doctype;
+
+	@DataContext("obo_app_transmittal")
+	def transmittalEm;
+
+	@DataContext("obo_app_requirement")
+	def reqEm;
+
+	@DataContext("obo_requirement_type")
+	def reqTypeEm;
+
+	@Env
+	def env;
+
+	@ProxyMethod
+	public void saveInitial( def o ) {
+		if(!o.apptype) throw new Exception("apptype is required OboAppRequirementService.saveInitial");
+		if(!o.appid) throw new Exception("appid is required OboAppRequirementService.saveInitial");
+
+		def reqTypes = reqTypeEm.where("apptype = :apptype ", [apptype: o.apptype ] ).list();
+		reqTypes.each {
+			def r = [:];
+			r.appid = o.appid;
+			r.state = 0;
+			r.typeid = it.objid;
+			r.type = [objid: it.objid];
+			reqEm.create( r );
+		}			
+	}
+
+	@ProxyMethod
+	public void deleteRequirements( def o ) {
+		if(!o.appid) throw new Exception("appid is required OboAppRequirementService.removeRequirements");
+		reqEm.find( [appid: o.appid]).delete();
+	}
+
+	//this checks if there revisions. However all requirements must be checked first
+	@ProxyMethod
+	public def checkHasRevision( def o ) {
+		if(!o.appid) throw new Exception("appid is required in OboAppRequirementService.getStatus");
+
+		//validate first if there are entries that have not been touched
+		def c = reqEm.select("c:{COUNT(*)}").find([appid:o.appid]).where("state = 0").val();
+		if( c>0) throw new Exception("All requirements must be checked first");		
+
+		//check if there are revisions that are not yet corrected
+		c = reqEm.find( [appid: o.appid ] ).select("c:{COUNT(*)}").where("state=2 AND supersederid IS NULL AND NOT(transmittalid IS NULL)").val();
+		if( c > 0 ) throw new Exception("Please resolve first the pending issues");
+
+		c = reqEm.select("c:{COUNT(*)}").find([appid:o.appid]).where("supersederid IS NULL AND state = 2 AND transmittalid IS NULL").val();
+		if( c > 0 ) {
+			return [hasrevision: true];
+		}
+		else {
+			return [hasrevision: false];
+		}
+	}
+
+	@ProxyMethod
+	public def createTransmittal( def o ) {
+		if(!o.appid) throw new Exception("appid is required in OboAppRequirementService.createTransmittal");
+		if(!o.appname) throw new Exception("Please include appname in OboAppRequirementService.createTransmittal")
+
+
+		def hasItems = reqEm.find([appid: o.appid]).where("supersederid IS NULL AND state=2 AND transmittalid IS NULL").exists();
+		if(!hasItems) throw new Exception("There are no open items found to transmit");
+
+		def docid = o.appname.toUpperCase() + "_REQUIREMENT_TRANSMITTAL";
+
+		def doc = doctype.find( [objid: docid] ).first();
+		if(!doc) throw new Exception("doctype " + docid + " not found");
+		def pattern = doc.controlnopattern;
+
+		if(!pattern) throw new Exception("Please define controlnopattern in " + docid );
+		def t = [:];
+		t.objid = controlNoSvc.getNextNo( pattern );
+		t.appid = o.appid;
+		t.app = [objid: o.appid];
+		t.type = "requirement";
+		t.createdby = [objid: env.USERID, name: env.FULLNAME ];
+		t.dtcreated = dateSvc.getServerDate();
+		t.taskid = o.taskid;
+		t.state = 0;
+		t.approverid = doc.approverid;
+		t.endorserid = doc.endorserid;	
+		t.template = doc.template;
+		t.reportheader = doc.reportheader;	
+		transmittalEm.create( t );
+		reqEm.find([appid: o.appid]).where("supersederid IS NULL AND state=2 AND transmittalid IS NULL").update( [transmittalid: t.objid] );
+		if(o.sendmail == true) {
+			emailSvc.send( [reportid:"obo_app_transmittal", refid: t.objid ]);
+		}
+		return t;	
+	}
+
+
+}	

@@ -5,7 +5,7 @@ class OccupancyApplicationInitialService {
 	@DataContext("occupancy_permit")
 	def appEm;
 
-	@DataContext("occupancy_permit_entity")
+	@DataContext("obo_app_entity")
 	def entityEm;
 
 	@DataContext("occupancy_permit_professional")

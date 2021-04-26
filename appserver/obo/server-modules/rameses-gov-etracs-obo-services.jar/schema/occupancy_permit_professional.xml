@@ -5,7 +5,7 @@
 		<field name="profession" required="true"/>
 
 		<!-- link to actual reference -->
-		<complex name="entity" ref="occupancy_permit_entity" jointype="many-to-one">
+		<complex name="entity" ref="obo_app_entity" jointype="many-to-one">
 			<key field="entityid" target="objid" />
 		</complex>	
 

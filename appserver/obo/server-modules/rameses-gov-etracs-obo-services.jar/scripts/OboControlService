@@ -17,82 +17,102 @@ class OboControlService {
     @DataContext("obo_control")
     def controlEm;
 
-	@DataContext(dynamic=true)
-	def dynEm;
+	@DataContext("obo_app_doc")
+    def docEm;
+
+	@DataContext("vw_obo_app_doc")
+    def vwDocEm;
 
 	@Env
 	def env;
 
 	@ProxyMethod
-	public def create( def p ) {
-		if(!p.objid ) throw new Exception("objid is required in OboControlService.create");
-		if(!p._schemaname) throw new Exception("schemaname is required in OboControlService.create");
-		if(!p.appid) throw new Exception("appid is required in OboControlService.create");		
-		if(!p.doctypeid) throw new Exception("doctypeid is required in OboControlService.create");
+	public def saveControl( def doc ) {
+		if(!doc.dtissued) doc.dtissued = dateSvc.getServerDate();
+		if(!doc.state) doc.state = 1;
 
-		def appEm = dynEm.lookup( p._schemaname );
-		def app = appEm.find( [objid: p.objid] ).first();			
-		if(!app) throw new Exception("Document does not exist");
-		if(app.controlid) throw new Exception("This has already been issued");	
-
-		def doctype = doctypeEm.find( [objid: p.doctypeid ]).first();
-		if( doctype.issuetype == 2 ) {
-			if( !p.controlno ) throw new Exception("controlno is required");
-		}
-		else if( doctype.issuetype == 1 || doctype.issuetype == 3 ) {
-			def pattern = doctype.controlnopattern;
-			if(!pattern) throw new Exception("Please define controlnopattern entry in doctype");
-			try {
-				p.controlno = controlNoSvc.getNextNo( pattern );
-			}
-			catch(pex) {
-				throw new Exception("Error generating " + pex.getMessage() + " for pattern " + pattern );
-			}
-			
-		}
-		else {
-			throw new Exception("issuetype is not supported " + doctype.issuetype + " .. ");
-		}
-
-		//check first if this doctype has refdocs 
-		def refDocs = doctypeEm.find( [refdoc: doctype.objid ] ).list()*.objid;
-		if( refDocs ) {
-			//find all ref docs that have not yet been issued
-			def str = "('" + refDocs.join("','") + "')";
-			def unissued = appEm.find( [appid: app.appid ] ).where("controlid IS NULL AND doctypeid IN " + str ).list()*.doctype?.title;
-			if( unissued )
-				throw new Exception("Please issue the ff. reference documents first \n" + unissued.join("\n"));
-		}
-
+		def doctype = doc.doctype;
 		def u = [:];
-		u.state = 1;
-		u.appid = p.appid;
-		u.issuedby = [ objid: env.USERID, name: env.FULLNAME ];
-		u.dtissued = dateSvc.getServerDate();
-		u.doctypeid = p.doctypeid;
-		u.controlno = p.controlno;
-		u.remarks = p.remarks;
-		u.expirydate = p.expirydate;
+		u.state = doc.state;
+		u.appid = doc.appid;
+		u.docid = doc.objid;
+		u.issuedby = doc.issuedby;
+		u.dtissued = doc.dtissued;
+		u.doctypeid = doc.doctypeid;
+		u.controlno = doc.controlno;
+		u.remarks = doc.remarks;
+		u.expirydate = doc.expirydate;
 		u.template = doctype.template;
 		u.approverid = doctype.approverid;
 		u.endorserid = doctype.endorserid;
 		u.reportheader = doctype.reportheader;
-
 		u = controlEm.create( u );
+		docEm.find( [objid: doc.objid] ).update( [controlid: u.objid ] );
+		return u;
+	}
 
-		appEm.find( [objid: p.objid] ).update( [controlid: u.objid ] );
+	@ProxyMethod
+	public def autoIssue( def p ) {
+		if(!p.objid) throw new Exception("objid is required in OboControlService.autoIssue");
+		def doc = vwDocEm.find( [objid: p.objid ] ).first();
+		if(doc.controlid) throw new Exception("OboControlService.autoIssue. Control no for " + doc.doctypeid + " is already issued");
+		def doctype = doc.doctype;
+		if(doctype.issuetype != 1) throw new Exception("OboControlService.autoIssue. Issue type for " + doctype.title + " should be 1" );
 
-		if( p.notificationid) {
-			def notList = []
-			notList << p.notificationid;
-			notList << "obo";
-			notificationSvc.notify( notList );
+		def pattern = doctype.controlnopattern;
+		if(!pattern) throw new Exception("Please define controlnopattern entry in doctype " + doctype.title );
+		if(pattern.contains("[parentno]")) {
+			if(!doctype.refdoc) throw new Exception("[parentno] pattern for " + doctype.title + " requires refdoc to be specified" );
+			def refdoc = doctype.refdoc;
+			def parentDoc = vwDocEm.find( [appid: doc.appid ] ).where("doctype.objid = :doctypeid", [doctypeid: refdoc] ).first();
+			doc.controlno = pattern.replace("[parentno]", parentDoc.controlno );
+		}
+		else {
+			doc.controlno = controlNoSvc.getNextNo( pattern );				
+		} 
+		doc.issuedby = [:]
+		return saveControl( doc );
+	}
+
+	@ProxyMethod
+	public def create( def p ) {
+		if(!p.objid ) throw new Exception("objid is required in OboControlService.create");
+		if(!p.controlno ) throw new Exception("controlno is required in OboControlService.create");
+
+		def doc = vwDocEm.find( [objid: p.objid ] ).first();
+		if(doc.controlid) throw new Exception("Control no for " + doc.doctypeid + " is already issued");
+		def doctype = doc.doctype;
+
+
+		def refDocs = doctypeEm.find( [refdoc: doctype.objid ] ).list()*.objid;
+		if( refDocs ) {
+			//find all ref docs that have not yet been issued
+			def str = "('" + refDocs.join("','") + "')";
+			def unissued = docEm.find( [appid: doc.appid ] ).where("controlid IS NULL AND doctypeid IN " + str ).list()*.doctype?.title;
+			if( unissued )
+				throw new Exception("Please issue the ff. reference documents first \n" + unissued.join("\n"));
 		}
 
-		return u;
+		doc.issuedby = [ objid: env.USERID, name: env.FULLNAME ];
+		doc.dtissued = pt.dtissued;
+		doc.controlno = p.controlno;
+		doc.expirydate = p.expirydate;
+		def c = saveControl( doc );
+
+		//send notification
+		def notList = [];
+		notList << "obo";
+		notList << "obo_app_doc:" + doctype.objid.toLowerCase();
+		notificationSvc.notify( notList );			
+
+		return c;
 	}	
 	
-
+	@ProxyMethod
+	public void deleteControls( def o ) {
+		if(!o.appid ) throw new Exception("appid is required in OboControlService.deleteControls");
+		controlEm.find( [appid: o.appid] ).delete();
+	}
 
 
 }

@@ -1,0 +1,23 @@
+<schema>
+	<element tablename="vw_obo_app">
+		<field name="objid" primary="true"/>
+		<field name="apptype" />
+		<field name="appno" indexed="true" searchable="true" caption="App No"/>
+		<field name="trackingno" indexed="true" searchable="true" caption="Tracking No"/>
+		<field name="title" indexed="true" searchable="true" caption="Project Title"/>
+		<field name="applicant_name" indexed="true" searchable="true" caption="Applicant Name"/>
+
+		<field name="applicant_address_text"/>
+		<field name="applicant_profileid" />
+
+		<field name="location_text"  caption="Location"/>
+		<field name="task_state" />
+		<field name="processname" />		
+		<field name="task_assignee_objid" />
+
+		<field name="doctitle" />
+		<field name="contact_email" />
+		<field name="contact_mobileno" />		
+	</element>
+</schema>
+

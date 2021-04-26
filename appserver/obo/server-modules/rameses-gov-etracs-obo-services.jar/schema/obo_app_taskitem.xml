@@ -1,0 +1,8 @@
+<schema>
+	<element tablename="obo_app_taskitem">
+		<field name="objid" primary="true" prefix="OBOTSKITM"/>
+		<field name="appid" />
+		<field name="typeid" />
+		<field name="taskid" />
+	</element>
+</schema>

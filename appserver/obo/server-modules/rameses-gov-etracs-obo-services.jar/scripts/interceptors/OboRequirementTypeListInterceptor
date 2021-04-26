@@ -7,7 +7,6 @@ class OboRequirementTypeListInterceptor {
 		def result = evt.result;
 		result << [title: "Building Permit", type: "building_permit" ];		
 		result << [title: "Occupancy Permit", type: "occupancy_permit"];	
-		result << [title: "Evaluation Post Requirements", type: "evaluation"];				
 	}
 
 	@Before(pattern="QueryService.getList", eval="#{args[0]._schemaname == 'obo_requirement_type' }")
@@ -16,7 +15,7 @@ class OboRequirementTypeListInterceptor {
 		if( o.node?.type == null ) return;
 
 
-		def str = " permittype = :type ";
+		def str = " apptype = :type ";
 		def m = [type: o.node.type ];
 
 		//add to first position of where

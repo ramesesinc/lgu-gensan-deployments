@@ -1,0 +1,25 @@
+import com.rameses.annotations.*
+import com.rameses.util.*
+import com.rameses.common.*
+import com.rameses.services.extended.*
+
+class OboPtrBillingService  {
+    @DataContext('obo_itemaccount')
+    def em_obo_acct;
+    
+    @ProxyMethod
+    public def getBilling( def o ) {
+        def bill = [:];
+        bill.professional = o.professional;
+        bill.partner = o.partner;
+        bill.amount = 300.0;
+        bill.txntypename = 'OBO';
+        bill.items = [];
+        bill.items << [
+            item: em_obo_acct.find([objid: 'PTR']).first().item,
+            amount: bill.amount,
+        ];
+        return bill;
+    }
+
+}

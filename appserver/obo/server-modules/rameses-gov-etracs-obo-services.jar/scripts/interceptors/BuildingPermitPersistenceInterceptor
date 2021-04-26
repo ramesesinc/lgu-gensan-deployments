@@ -3,6 +3,15 @@ import java.rmi.server.*;
 
 class BuildingPermitPersistenceInterceptor {
 	
+	@Service("OboAppRequirementService")
+	def reqSvc;
+
+	@Service("OboAppProfessionalService")
+	def profSvc;
+
+	@Service("OboAppDocService")
+	def appDocSvc;
+
 	@DataContext("building_permit")
 	def appEm;
 
@@ -15,43 +24,19 @@ class BuildingPermitPersistenceInterceptor {
 	@DataContext("vw_building_permit")
 	def vwAppEm;
 
-	@DataContext("building_permit_entity")
+	@DataContext("obo_app_entity")
 	def entityEm;
 
-	@DataContext("building_permit_payment")
+	@DataContext("obo_payment")
 	def paymentEm;
 
-	@DataContext("building_permit_doc")
-	def subdocEm;
-
-	@DataContext("vw_building_permit_doc")
-	def vwDocEm;
-
-	@DataContext("building_permit_requirement")
-	def reqEm;
-
-	@DataContext("obo_requirement_type")
-	def reqTypeEm;
-
-	@DataContext("obo_doctype")
-	def doctypeEm;
-
-	@DataContext("building_permit_fee")
+	@DataContext("obo_app_fee")
 	def feeEm;
-
-	@DataContext("obo_professional")
-	def professionalEm;
-
-	@DataContext("obo_professional_info")
-	def professionalInfoEm;
 
 	@DataContext("building_permit_rpu")
 	def rpuEm;
 
-	@DataContext("building_permit_info")
-	def appInfoEm;
-
-	@Service("OboAppnoGeneratorService")
+	@Service("OboApplicationService")
 	def appSvc;
 
 	@Service("OboConstructionCostRuleService")
@@ -88,27 +73,6 @@ class BuildingPermitPersistenceInterceptor {
 		return lst.findAll{it}.join(",");		
 	}
 
-	//check if 	professional exists in the obo_professional database
-    private void saveProfessional( def o ) {
-    	if(!o.objid) return;
-    	def p = professionalInfoEm.find( [objid: o.objid ]).first();
-    	if( !p ) {
-    		professionalInfoEm.create( o );
-    	}
-    	if(o.profid) {
-    		def pp = professionalEm.find( [objid: o.profid ] ).first();
-    		if(!pp) {
-    			def m = [:];
-    			m.objid = o.profid;
-    			m.prcno = o.prc.idno;
-    			m.profession = o.profession;
-    			m.infoid = o.objid;
-    			professionalEm.create( m );
-    		}
-    	}
-    }
-
-
 	//fire the workflow to start the process
     private void startWorkflow( def app ) {
 		def p = [:];
@@ -127,41 +91,22 @@ class BuildingPermitPersistenceInterceptor {
 		atask.refid = app.objid;
 		atask.state =  app.task.state;
 		atask.dtcreated = dateSvc.getServerDate();
-		return appTaskEm.create( atask );
+		def tsk = appTaskEm.create( atask );
+		appEm.find([objid:app.objid]).update( [taskid: tsk.taskid] );
+		return tsk;
     }
 
     //create permit for capture
     private def savePermit( def app ) {
     	if(!app.permitno) return null;
-
-    	//find the permit doc.
-    	def bdoc = vwDocEm.find( [appid: app.objid ] ).where( "doctype.objid = 'BUILDING_PERMIT' " ).first();
-    	if(!bdoc) {
-    		bdoc = [:];
-			bdoc.appid = app.objid;
-			bdoc.doctype = doctypeEm.find( [objid: "BUILDING_PERMIT"] ).first();
-			bdoc.amount = 0;
-			bdoc.state = 0;
-			bdoc = subdocEm.create( bdoc );			
-    	}
-
-    	def doctype = bdoc.doctype;
-		def bp = [:];	
-		bp.appid = app.objid;
-		bp.doctype = doctype;	
-		bp.doctypeid = doctype.objid;		
-		bp.controlno = app.permitno;
-		bp.dtissued = app.permitdtissued;
-		bp.expirydate = app.permitexpirydate;
-		bp.issuedby = [ objid:env.USERID, name:env.FULLNAME];
-		bp.state = 3;
-		bp.template = doctype.template;
-		bp.endorserid = doctype.endorserid;
-		bp.approverid = doctype.approverid;
-		bp.reportheader = doctype.reportheader;
-		def ctl = controlEm.create( bp );
-		subdocEm.find([objid: bdoc.objid] ).update( [controlid: ctl.objid] );	
-		return ctl;
+    	def permit = [:];
+    	permit.appid = app.objid;
+    	permit.doctypeid = "BUILDING_PERMIT";	
+    	permit.controlno = app.permitno;
+    	permit.dtissued = app.permitdtissued;
+    	permit.expirydate = app.permitexpirydate;
+    	permit.state = 3;
+    	return appDocSvc.createAndIssue( permit );
     }
 
     //save payment
@@ -177,71 +122,43 @@ class BuildingPermitPersistenceInterceptor {
 		return paymentEm.create( pmt );	
     }
 
-    //save the accessories
-    private void saveAccessories( def app ) {
-    	if(!app.accessories) return;
-		def appdoc = [:]
-		appdoc.objid = app.objid +"_ACCESSORIES";
-		appdoc.appid = app.objid;
-		appdoc.state = 0;
-		appdoc.doctype = [ objid: 'ACCESSORIES' ];
-		app.amount = 0;		
-		subdocEm.create( appdoc );
-		app.accessories.each { acc->
-			def infos = app.infos.findAll{ it.parentid == acc.objid };
-			infos.each { info->
-				info.parentid = appdoc.objid;
-				info.appid = app.objid;
-				info.type = [name: info.name ];
-				appInfoEm.create( info );
-			}
-		}
-    }
-
-    private void saveAncillaryDocs( def app ) {
+    private void saveAppProfessionals( def app ) {
     	if(!app.ancillaries) return;
-    	app.ancillaries.each { anc->
-    		//save the linked professionals
-    		saveProfessional( anc.designprofessional );
-			saveProfessional( anc.supervisor );
-
-			anc.appid = app.objid;
-			anc.doctype = [ objid: anc.permittypeid.toUpperCase() ];
-			anc.amount = 0;
-			anc.state = 0;
-			subdocEm.create( anc );
-			def infos = app.infos.findAll{ it.parentid == anc.objid };
-			infos.each { info->
-				info.appid = app.objid;
-				info.type = [name: info.name ];
-				appInfoEm.create( info );
-			}			
-		};
+    	app.ancillaries.findAll{ it.designprofessional!=null || it.supervisor!=null }.each { anc->
+			def p = [:];
+			p.designprofessional =  anc.designprofessional ;
+			p.supervisor =  anc.supervisor;
+			p.doctypeid =  anc.permittypeid.toUpperCase();
+			p.appid = app.objid;
+			p.doctypeid =  anc.permittypeid.toUpperCase();
+			profSvc.addAppProfessional( p );
+    	}
     }
 
 	//save all documents that are auto create that does not exist above
-    private void saveInitialDocuments( def app ) {
-		subdocEm.getSubdocsToAutoCreate( [apptype:'building', appid: app.objid ]).each {
-			def sd = [:];
-			sd.appid = app.objid;
-			sd.doctype = [objid: it.objid];
-			sd.amount = 0;
-			sd.state = 0;
-			subdocEm.create( sd );			
-		}	
-    }
-
-	//save the requirements
-    private void saveRequirements( def app ) {
-		def reqTypes = reqTypeEm.where("permittype = 'building_permit' ").list();
-		reqTypes.each {
-			def r = [:];
-			r.appid = app.objid;
-			r.state = 0;
-			r.typeid = it.objid;
-			r.type = [objid: it.objid];
-			reqEm.create( r );
-		}
+    private void saveDocuments( def app ) {
+    	//loop first all ancillaries
+    	def doclist = [];
+    	if(app.ancillaries) {
+	    	app.ancillaries.each { anc->
+	    		anc.doctypeid = anc.permittypeid.toUpperCase();
+	    		anc.infos = app.infos.findAll{ it.parentid == anc.objid };
+	    		doclist << anc;
+	    	}
+    	}
+    	//loop next accessories
+    	if(app.accessories) {
+    		def z = [objid: app.objid+"_ACCESSORIES"];
+    		z.doctypeid = 'ACCESSORIES';
+    		def accInfos = [];		
+			app.accessories.each { acc->
+				def infos = app.infos.findAll{ it.parentid == acc.objid };
+				accInfos.addAll( infos );
+			}
+			z.infos = accInfos;
+			doclist << z;
+    	}
+    	appDocSvc.saveInitial(  [appid: app.objid, apptype: "building_permit", doclist: doclist]  );
     }
 
     private void saveEntities( def app ) {
@@ -262,6 +179,10 @@ class BuildingPermitPersistenceInterceptor {
 		}
     }
 
+    private void saveRequirements( def app ) {
+    	reqSvc.saveInitial( [apptype: 'building_permit', appid: app.objid ] );
+    }
+
     private def getTxnType( def app ) {
     	def occupancytype = app.occupancytype;
 		def txntype = 'COMPLEX';
@@ -278,11 +199,7 @@ class BuildingPermitPersistenceInterceptor {
 	public void beforeCreateApplication(def evt) {
 		def app = evt.args[0];
 		if(!app.applicant) throw new Exception("Applicant is required");
-		if( app.txnmode == "CAPTURE" ) {
-			if(!app.appno) {
-				app.appno = appSvc.generate([apptype:"building_permit"]);
-			}	
-		}
+		
 		if(app.trackingno) {
 			def orgno = env.ORGID;
 			if( !app.trackingno.startsWith(orgno) ) {
@@ -290,11 +207,9 @@ class BuildingPermitPersistenceInterceptor {
 			}
 		}	
 
-		//check first all professionals if exist in the obo_professional table
 		app.objid = "BAPP" + new UID();
 		app.orgcode = env.ORGID;
 		app.occupancytypeid = app.occupancytype?.objid;
-		app.supervisorid = app.supervisor?.objid;
 		app.apptype = app.apptype?.toUpperCase();
 
 		if(!app.location?.text) {
@@ -307,7 +222,8 @@ class BuildingPermitPersistenceInterceptor {
 		app.applicantid = app.applicant.objid;
 
 		//save the supervisor
-		saveProfessional( app.supervisor );		
+		def supervisor = profSvc.saveProfessional( app.supervisor );		
+		if(supervisor) app.supervisor = supervisor;
 
 		app.createdby = [objid: env.USERID, name: env.FULLNAME];
 		app.dtcreated = dateSvc.getServerDate();
@@ -324,27 +240,25 @@ class BuildingPermitPersistenceInterceptor {
 		entityEm.find( [objid: app.applicant.objid ] ).update( [appid: app.objid] );
 
 		if( app.txnmode == "CAPTURE" ) {
+			saveTask( app );			
+			if(!app.appno) {
+				appSvc.assignAppno( [appid: app.objid ] );
+			}	
 			if( app.task.state == 'requirement-verification' ) {
 				saveRequirements( app );
 			}
 			if( app.task.state != 'end') {
-				saveInitialDocuments( app );
+				saveDocuments( app );
 			}
-			def tsk = saveTask( app );
-			def permit = savePermit( app );
+			savePermit( app );
 			savePayment( app );
-			def u = [:];
-			u.taskid = tsk.taskid;
-			if( permit?.objid ) u.controlid = permit.objid;
-			appEm.find([objid:app.objid]).update( u );
 		}
 		else {
 			saveEntities( app );
 			saveRpus( app );
-			saveAccessories( app );
-			saveAncillaryDocs( app );
-			saveInitialDocuments( app );			
-			saveRequirements( app );
+			saveDocuments( app );
+			saveAppProfessionals( app );	
+			saveRequirements( app );		
 			startWorkflow( app );
 		}
 	}
@@ -386,15 +300,21 @@ class BuildingPermitPersistenceInterceptor {
 	public void beforeRemoveApp( def evt ) {
 		def p = evt.args[0];
 		def app = vwAppEm.find( [objid: p.objid]).first();
-		if( app.task.state != 'receiving') 
+		if( app.txnmode == "CAPTURE") {
+			//do nothing
+		}
+		else if( app.task.state != 'receiving') 
 			throw new Exception("Application can only be removed in receiving state");
-		appEm.find([objid: app.objid]).update( [applicantid: "{NULL}", taskid: "{NULL}" ] );
-		rpuEm.find( [appid: app.objid] ).delete();
-		appInfoEm.find( [appid: app.objid] ).delete();
-		entityEm.find( [appid: app.objid] ).delete();
-		subdocEm.find( [appid: app.objid] ).delete();	
+
+		def u = [appid: app.objid ];		
+		appEm.find( [objid: app.objid ]).update( [applicantid: "{NULL}", taskid: "{NULL}" ] );
+		rpuEm.find( u ).delete();
+		entityEm.find( u ).delete();
 		appTaskEm.find( [refid: app.objid] ).delete();
-		reqEm.find( [appid: app.objid] ).delete();
+
+		appDocSvc.deleteDocuments( u );
+		profSvc.deleteAppProfessionals( u );
+		reqSvc.deleteRequirements( u );
 	} 
 
 

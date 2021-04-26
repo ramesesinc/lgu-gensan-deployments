@@ -25,7 +25,7 @@
 		<!-- certificate of true copy -->
 		<field name="truecopycertid"/>
 		
-		<complex name="owner" ref="building_permit_entity" jointype="many-to-one">
+		<complex name="owner" ref="obo_app_entity" jointype="many-to-one">
 			<key field="ownerid" target="objid" />
 		</complex>	
 	</element>

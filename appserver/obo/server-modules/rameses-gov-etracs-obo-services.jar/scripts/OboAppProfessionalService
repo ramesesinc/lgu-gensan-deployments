@@ -1,0 +1,67 @@
+import com.rameses.annotations.*;
+
+class OboAppProfessionalService {
+
+    @DataContext("obo_professional")
+    def professionalEm;
+
+    @DataContext("obo_professional_info")
+    def professionalInfoEm;
+	
+    @DataContext("obo_app_professional")
+    def appProfEm;
+
+    @DataContext("obo_doctype")
+    def docTypeEm;
+
+    @ProxyMethod
+    public def saveProfessional( def o ) {
+        if(!o) return null;
+        if(!o.objid) return null;
+        def p = professionalInfoEm.find( [objid: o.objid ]).first();
+        if( !p ) {
+            p = professionalInfoEm.create( o );
+        }
+        if(o.profid) {
+            def pp = professionalEm.find( [objid: o.profid ] ).first();
+            if(!pp) {
+                def m = [:];
+                m.objid = o.profid;
+                m.prcno = o.prc.idno;
+                m.profession = o.profession;
+                m.infoid = o.objid;
+                p = professionalEm.create( m );
+            }
+        }
+        return p;
+    }
+
+    @ProxyMethod
+    public def addAppProfessional( def o ) {
+        if(!o.appid) throw new Exception("appid is required in OboAppProfessionalService.addAppProfessional" );
+        if(!o.doctypeid) throw new Exception("doctypeid is required in OboAppProfessionalService.addAppProfessional" );
+        if(!o.designprofessional) throw new Exception("designprofessional is required in OboAppProfessionalService.addAppProfessional" );
+        if(!o.supervisor) throw new Exception("supervisor is required in OboAppProfessionalService.addAppProfessional" );
+
+        def dt = docTypeEm.find( [objid: o.doctypeid]).first();
+
+        def designer = saveProfessional( o.designprofessional );
+        def supervisor = saveProfessional( o.supervisor );
+
+        def m = [:];
+        m.appid = o.appid;
+        m.sectionid = dt.sectionid;
+        if(designer) m.designprofessional = designer;
+        if(supervisor) m.supervisor = supervisor;
+        m.remarks = o.remarks;
+        appProfEm.create( m );
+        return m;
+    }
+	
+    @ProxyMethod
+    public void deleteAppProfessionals( def o ) {
+        if(!o.appid) throw new Exception("appid is required in OboAppProfessionalService.deleteAppProfessional" );
+        appProfEm.find( [appid: o.appid ] ).delete();
+    }
+
+}

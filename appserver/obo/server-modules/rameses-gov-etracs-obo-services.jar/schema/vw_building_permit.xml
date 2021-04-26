@@ -5,7 +5,7 @@
 		<field name="apptype" />
 		<field name="appdate" />
 
-		<complex name="applicant" ref="building_permit_entity" jointype="many-to-one">
+		<complex name="applicant" ref="obo_app_entity" jointype="many-to-one">
 			<key field="applicantid" target="objid" />
 		</complex>
 

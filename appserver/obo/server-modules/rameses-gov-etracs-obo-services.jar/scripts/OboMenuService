@@ -6,11 +6,9 @@ import java.text.*;
 
 class OboMenuService {
 
-	@DataContext("building_evaluation_type")
-	def evalTypeEm;
+	@DataContext("obo_taskitem_type")
+	def taskitemEm;
 
-	@DataContext("occupancy_inspection_type")
-	def inspTypeEm;
 
 	@DataContext("obo_doctype")
 	def docTypeEm;
@@ -22,19 +20,11 @@ class OboMenuService {
     def roleSvc;
 
 	@ProxyMethod
-	public def getEvaluationTypesMenu() {
+	public def getTaskitemMenu() {
 		def m = [:];
         m.roles = roleSvc.getRolesString([:]); 
         m.orgid = (env.ORGROOT==1) ? "root" : env.ORGID;
-        return evalTypeEm.getAllowedTypes( m );
-	}
-
-	@ProxyMethod
-	public def getInspectionTypesMenu() {
-		def m = [:];
-        m.roles = roleSvc.getRolesString([:]); 
-        m.orgid = (env.ORGROOT==1) ? "root" : env.ORGID;
-        return inspTypeEm.getAllowedTypes( m );
+        return taskitemEm.getAllowedTypes( m );
 	}
 
 	@ProxyMethod

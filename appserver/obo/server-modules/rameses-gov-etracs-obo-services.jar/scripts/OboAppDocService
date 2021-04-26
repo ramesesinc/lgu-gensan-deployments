@@ -1,0 +1,149 @@
+import com.rameses.annotations.*;
+import com.rameses.util.*;
+
+public class OboAppDocService  {
+
+	@Service("MenuNotificationService")
+    def notificationSvc;
+
+	@Service("OboControlService")
+	def controlSvc;
+
+	@DataContext("vw_obo_app_taskitem")
+	def vwTaskItemEm;
+
+	@DataContext("vw_obo_app_doc")
+	def vwDocEm;
+
+	@DataContext("obo_app_doc")
+	def docEm;
+
+	@DataContext("obo_doctype")
+	def doctypeEm;
+
+	@DataContext("obo_app_doc_info")
+	def appInfoEm;
+
+    //this is created during saving of the application
+    //loop all documents sent in doclist. Then fire the documents that ate 
+    @ProxyMethod
+    public void saveInitial( def o ) {
+		if(!o.apptype) throw new Exception("apptype is required OboAppDocService.saveInitial");
+		if(!o.appid) throw new Exception("appid is required OboAppDocService.saveInitial");
+
+		if(o.doclist) {
+			o.doclist.each { doc->
+				doc.appid = o.appid;
+				doc.doctype = [objid: doc.doctypeid ];
+				doc.state = 0;
+				doc.amount = 0;
+				def m = docEm.create( doc );
+				if(doc.infos) { 
+					doc.infos.each {info->
+						info.parentid = m.objid;
+						info.appid = o.appid;
+						if(!info.type) info.type = [name: info.name];
+						appInfoEm.create( info );
+					}
+				}
+			}
+		}
+
+		docEm.getDocsToAutoCreate( [apptype: o.apptype, appid: o.appid ]).each {
+			def sd = [:];
+			sd.appid = o.appid;
+			sd.doctype = [objid: it.objid];
+			sd.amount = 0;
+			sd.state = 0;
+			docEm.create( sd );			
+		}	
+    }
+
+	@ProxyMethod
+	public def validateRequireFees( def o ) {
+		if(!o.refid) throw new Exception("refid is required in OboAppDocService.validateRequireFees")
+
+		def item = vwTaskItemEm.select("appid,type.sectionid").find( [objid: o.refid ]).first();
+		def sectionid = item.type.sectionid;
+		def appid = item.appid;
+
+		def docList = vwDocEm.find( [appid: appid ]).where( "doctype.sectionid = :sectionid AND requirefee=1 AND (amount IS NULL OR amount=0) ", [sectionid: sectionid]).list();
+		if(docList) {
+			throw new Exception("The following document require fees to be assessed: \n" + docList*.doctype.title.join("\n") );
+		}
+	}
+
+
+	@ProxyMethod
+	public def issueDocControlno( def o ) {
+		if(!o.appid) throw new Exception("appid is required in OboAppDocService.issueDocControlno");
+		//fire first documents marked as main
+		vwDocEm.find( [appid: o.appid ]).where( "controlid IS NULL AND doctype.issuetype = 1 AND doctype.type = 'MAIN' " ).select("objid").list().each {
+			controlSvc.autoIssue( [objid: it.objid ] );
+		}
+
+		//fire all other documents next
+		vwDocEm.find( [appid: o.appid ]).where( "controlid IS NULL AND doctype.issuetype = 1 " ).select("objid").list().each {
+			controlSvc.autoIssue( [objid: it.objid ] );
+		}
+
+		//notify those docs that are manually issued
+		def notList = [];
+		vwDocEm.find( [appid: o.appid ]).where( "controlid IS NULL AND doctype.issuetype = 2 " ).list().each {
+			notList << 	"obo_app_doc:" + it.doctype.objid.toLowerCase();
+		}
+
+		if(notList) {
+			notList << "obo";
+			notificationSvc.notify( notList );			
+		}
+
+	}
+
+	@ProxyMethod
+	public void validateIssuances(def o) {
+		if(!o.appid) throw new Exception("appid is required in OboAppDocService.validateIssuances");
+		def unissuedList = [];
+		vwDocEm.find( [appid: o.appid ]).where( "controlid IS NULL AND doctype.issuetype IN (1,2) " ).list().each {
+			unissuedList << it.doctype.title;
+		}
+		if(unissuedList) 
+			throw new Exception("The following documents must be issued first \n" + unissuedList.join("\n") );
+	}
+
+	@ProxyMethod
+	public def createAndIssue( def o ) {
+		if(!o.appid) throw new Exception("appid is required in OboAppDocService.createAndIssue");
+		if(!o.doctypeid) throw new Exception("doctypeid is required in OboAppDocService.createAndIssue");
+		if(!o.controlno) throw new Exception("controlno is required in OboAppDocService.createAndIssue");
+		if(!o.dtissued) throw new Exception("dateissued is required in OboAppDocService.createAndIssue");
+
+    	//find the permit doc.
+    	def bdoc = vwDocEm.find( [appid: o.appid ] ).where( "doctype.objid = :doctypeid ", [doctypeid: o.doctypeid] ).first();
+    	if(!bdoc) {
+    		bdoc = [:];
+			bdoc.appid = o.appid;
+			bdoc.doctype = doctypeEm.find( [objid: o.doctypeid] ).first();
+			bdoc.amount = 0;
+			bdoc.state = 0;
+    		bdoc.doctypeid = o.doctypeid;			
+			bdoc = docEm.create( bdoc );			
+    	}
+    	bdoc.controlno = o.controlno;
+    	bdoc.dtissued = o.dtissued;
+    	bdoc.state = o.state;
+		return controlSvc.saveControl( bdoc );
+	}
+	
+	@ProxyMethod
+    public void deleteDocuments( def o ) {
+        if(!o.appid) throw new Exception("appid is required in OboAppDocService.deleteDocuments" );
+        docEm.find( [appid: o.appid] ).update( [controlid: "{NULL}"]);
+        controlSvc.deleteControls( [appid:o.appid ] ); 
+        appInfoEm.find( [appid: o.appid ]).delete();
+        docEm.find( [appid: o.appid ]).delete();
+    }
+
+
+
+}

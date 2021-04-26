@@ -8,8 +8,15 @@ class OboPaymentService {
 	@Service("DateService")
 	def dateSvc;
 
-	@DataContext(dynamic=true)
-	def dynaDb;
+	@DataContext("obo_payment")
+	def pmtEm;
+
+	@DataContext("obo_app_fee")
+	def appFeeEm;
+
+	@DataContext("vw_obo_app")
+	def appEm;
+
 
 	@ProxyMethod
 	public void postPayment( o ) { 
@@ -32,25 +39,19 @@ class OboPaymentService {
 		pmt.amount = o.amount;
 		pmt.voided = 0;
 
-		def zapptype = null;
-		if(o.apptype == "building") {
-			zapptype = "building_permit";
-		}
-		else if( o.apptype == "occupancy") {
-			zapptype = "occupancy_permit";
-		}
-
-		def pmtEm = dynaDb.lookup( zapptype +'_payment' ); 
 		pmtEm.create( pmt );
-
-		def appFeeEm = dynaDb.lookup( zapptype +'_fee' );  
 		appFeeEm.find([ appid: o.appid ]).update([ amtpaid: "{amount}" ]); 
+
+		//we have to do this to ensure that the processname we are picking up is correct.
+		def app = appEm.find( [objid: o.appid] ).first();
 
 		//fire the workflow for release.
 		def m = [:];
-		m.processname = zapptype;
+		m.processname = app.processname;
 		m.action = "post-payment";
 		m.refid = o.appid;
 		wfSvc.signal( m ); 
 	} 
+
+
 } 

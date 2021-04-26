@@ -5,7 +5,7 @@ class BuildingPermitSignageReportInterceptor {
 	@DataContext("vw_building_permit")
 	def permitEm;
 
-	@DataContext("vw_building_permit_doc")
+	@DataContext("vw_obo_app_doc")
 	def vwSubdocEm;
 
 	def findPermit( def id ) {

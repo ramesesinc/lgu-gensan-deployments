@@ -9,15 +9,6 @@ import enterprise.utils.*;
 
 public class BuildingPermitRpuService  {
 
-	@DataContext("building_permit_rpu")
-	def rpuEm;
-
-	@DataContext("building_permit_entity")
-	def entityEm;
-
-	@DataContext("building_permit")
-	def appEm;
-
 	@Service(value="RPTCertificationOnlineService", connection="rpt")
 	def rptSvc;
 
@@ -27,11 +18,26 @@ public class BuildingPermitRpuService  {
     @Service(value="EntityService", connection="entity")
     def entitySvc;
 
-    @DataContext("vw_building_permit")
-	def vwAppEm;
+	@Service("BillingRuleService")
+	def billingRuleSvc;
 
 	@Service("DateService")
 	def dateSvc;
+
+	@DataContext("building_permit_rpu")
+	def rpuEm;
+
+	@DataContext("obo_app_entity")
+	def entityEm;
+
+	@DataContext("building_permit")
+	def appEm;
+
+    @DataContext("vw_building_permit")
+	def vwAppEm;
+
+	@DataContext("obo_itemaccount")
+	def itemAcctEm;
 
 	@ProxyMethod
 	public void generateDocs( def o ) {
@@ -45,7 +51,6 @@ public class BuildingPermitRpuService  {
 			app = appEm.find( [objid: rpu.appid ]).first();
 			list = [rpu];
 		}
-		
 		list.each {
 			def params = [:];
 			params.entityid = entityEm.find( [objid: it.ownerid] ).first()?.profileid;			
@@ -136,6 +141,26 @@ public class BuildingPermitRpuService  {
 		info.appid = params.appid;
         return info;
     }
+
+    @ProxyMethod
+    public void validateRptDocs(def o) {
+		if(!o.appid) throw new Exception("Please include appid in BuildingPermitRpuService.validateRptDocs");
+    	def exists = rpuEm.find( [appid: o.appid ]).where("truecopycertid IS NULL OR taxclearanceid IS NULL").exists();
+    	if(exists)
+    		throw new Exception("Please generate the RPT Documents first before proceeding");
+    }
+
+    @ProxyMethod
+    public def getRpuCount(def o) {
+		if(!o.appid) throw new Exception("Please include appid in BuildingPermitRpuService.validateRptDocs");
+		def rpu = [:];
+        rpu.byownercount = rpuEm.find( [appid: o.appid ] ).select("c:{COUNT( DISTINCT ownerid )}").val();
+		rpu.totalcount = rpuEm.find( [appid: o.appid ] ).select("c:{COUNT(*)}").val();
+		return rpu;
+    }
+
+
+
 
 
 }

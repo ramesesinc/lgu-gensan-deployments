@@ -3,8 +3,11 @@ import java.rmi.server.*;
 
 class BuildingPermitEmailAttachmentInterceptor { 
 
-	@DataContext("vw_building_permit_doc")
+	@DataContext("vw_obo_app_doc")
 	def vwSubdocEm;
+
+	@DataContext("vw_obo_app")
+	def vwAppEm;
 
 	@DataContext("building_permit_rpu")
 	def rpuEm;
@@ -17,7 +20,11 @@ class BuildingPermitEmailAttachmentInterceptor {
 	@Before(pattern="JasperEmailQueueService.send", eval="#{args[0].reportid == 'building_permit_email_attachment' }")
 	public void beforeSendEmailQueue( def evt ) {
 		def p = evt.args[0];
-		if(!p.to) throw new Exception("Email must be provided");
+
+		if(!p.to) {
+			def mainApp = vwAppEm.find([objid: p.refid ]).first();
+			p.to = mainApp.contact.email;
+		}	
 
 		def app = vwSubdocEm.find( [appid: p.refid ] ).where("doctype.objid = 'BUILDING_PERMIT' ").first();
 		if(!app)
@@ -39,11 +46,12 @@ class BuildingPermitEmailAttachmentInterceptor {
 		doclist.each {
 			def z = [:];
 			z.title = it.doctype.objid + ".pdf";
-			z.reportid = "building_permit_doc";
+			z.reportid = "obo_app_doc";
 			z.parameters = [objid: it.objid];
 			o.attachments << z; 
 		}
 
+		/*
 		def rpus = rpuEm.find([appid: o.refid ]).select( "tdno,taxclearanceid,truecopycertid" ).list();
  		rpus.each {
         	try {
@@ -60,9 +68,10 @@ class BuildingPermitEmailAttachmentInterceptor {
         		println "error generating rpt reports for email. " + ignErr.getMessage();
         	}
         } 
+        */
 
         //construction signage printout
-		o.attachments <<[ reportid: "building_permit_signage", parameters: [objid:o.refid], title: "ConstructionSignage.pdf" ] 
+		//o.attachments <<[ reportid: "building_permit_signage", parameters: [objid:o.refid], title: "ConstructionSignage.pdf" ] 
 
     } 
 

@@ -1,0 +1,13 @@
+<schema>
+	<element tablename="vw_obo_taskitem_consolidated">
+		<field name="objid" primary="true" />
+		<field name="appid" />
+		<field name="typeid" />
+		<field name="type_title" />
+		<field name="sortindex" />
+		<field name="org_objid" />
+		<field name="role" />
+	</element>
+</schema>
+
+

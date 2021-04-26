@@ -2,8 +2,7 @@
 	<element tablename="obo_checklist_master">
 		<field name="objid" primary="true" caption="Name" visible="true"/>
 		<field name="doctypeid" />	
-		<field name="evaltypeid" />
-		<field name="inspectiontypeid" />
+		<field name="taskitemtypeid" />
 
 		<field name="indexno" searchable="true" width="80" maxWidth="100"/>		
 		<field name="title" searchable="true"/>

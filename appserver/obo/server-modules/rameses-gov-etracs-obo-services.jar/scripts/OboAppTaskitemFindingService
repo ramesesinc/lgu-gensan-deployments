@@ -1,0 +1,114 @@
+import com.rameses.annotations.*; 
+import java.rmi.server.*;
+
+class OboAppTaskitemFindingService {
+
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("ControlnoGeneratorService")
+	def controlNoSvc;
+
+	@Service("JasperEmailQueueService")
+    def emailSvc;
+
+	@DataContext("obo_doctype")
+	def doctypeEm;
+
+	@DataContext("obo_app_transmittal")
+	def transmittalEm;
+
+	@DataContext("obo_app_taskitem_finding")
+	def findingEm;
+
+	@Env
+	def env;
+
+	@ProxyMethod
+	public def getList( def o ) {
+		if(!o.parentid) throw new Exception("parentid for taskitem is required");
+		def list = findingEm.find( o ).where( " supersederid IS NULL " ).where(" state IN (0,2) AND supersederid IS NULL ").orderBy(  "checklistitem.indexno ASC" ).list();
+        /*
+        if( viewType == "open" ) {
+            w1 += " AND state IN (0,2) ";
+        }
+        else if( viewType == "applicable") {
+            w1 += " AND state <> 3 ";
+        }
+        */     
+	}
+
+	@ProxyMethod
+	public def checkHasFindings( def  o ) {
+		if( !o.refid && !o.appid ) throw new Exception("appid or refid is required in OboAppTaskitemFindingService.checkHasFindings")
+
+		def filter = [:];
+		if(o.refid) {
+			filter.parentid = o.refid;
+		}	
+		else if(o.appid) {
+			filter.appid = o.appid;
+		}	
+		else 
+			throw new Exception("Please specify refid or appid in OboAppTaskitemFindingService.checkHasFindings")
+
+		//check if there are revisions that are not yet corrected
+		def c = findingEm.find(filter).select("c:{COUNT(*)}").where("state=2 AND supersederid IS NULL AND NOT(transmittalid IS NULL)").val();
+		if( c > 0 ) throw new Exception("Please resolve first the pending issues");
+
+		boolean exists = findingEm.find(filter).where("supersederid IS NULL AND state=2 AND transmittalid IS NULL").exists();
+		if( exists ) {
+			return [ hasfindings: true ];
+		}
+		else {
+			return [hasfindings: false ];
+		}
+	}
+
+	@ProxyMethod
+	public def createTransmittal( def o ) {
+		if(!o.appid) throw new Exception("appid is required in OboAppTaskitemFindingService.createTransmittal");
+		if(!o.appname) throw new Exception("Please include appname in OboAppTaskitemFindingService.createTransmittal")
+		if(!o.type) throw new Exception("Please include type in OboAppTaskitemFindingService.createTransmittal")
+
+		boolean hasItems = findingEm.find([appid:o.appid]).where("supersederid IS NULL AND state=2 AND transmittalid IS NULL").exists();
+		if(!hasItems) throw new Exception("There must be at least one finding that needs to be transmitted");			
+	
+		def docid = o.appname.toUpperCase() + "_" + o.type.toUpperCase() + "_TRANSMITTAL";
+		def doc = doctypeEm.find( [objid: docid] ).first();
+		if(!doc) throw new Exception("doctype " + docid + " not found");
+
+		if(!doc.controlnopattern) throw new Exception("Please define controlnopattern in " + docid );
+		def t = [:];
+		t.objid = controlNoSvc.getNextNo( doc.controlnopattern );
+		t.appid = o.appid;
+		t.app = [objid: o.appid];
+		t.type = o.type;
+		t.createdby = [objid: env.USERID, name: env.FULLNAME ];
+		t.dtcreated = dateSvc.getServerDate();
+		t.state = 0;
+		t.approverid = doc.approverid;
+		t.endorserid = doc.endorserid;	
+		t.template = doc.template;
+		t.reportheader = doc.reportheader;	
+		transmittalEm.create( t );
+
+		findingEm.find([appid: o.appid]).where("supersederid IS NULL AND state=2 AND transmittalid IS NULL").update( [transmittalid: t.objid] );
+		if(o.sendmail == true) {
+			emailSvc.send( [reportid: "obo_app_transmittal", refid: t.objid ]);
+		}
+		return t;	
+	}
+
+	@ProxyMethod
+	public void validateApproval( def o ) {
+		if(!o.appid) throw new Exception("appid is required in OboAppTaskitemFindingService.validateApproval");
+		if(!o.apptype) throw new Exception("Please include apptype in OboAppTaskitemFindingService.validateApproval")
+		//check if there are pending findings
+		def t = findingEm.find( [appid: o.appid] ).select("c:{COUNT(*)}").where("state=2 AND supersederid IS NULL").val();
+		if( t > 0) throw new Exception("There are unresolved findings. You need to send this for revision");
+	}
+
+
+
+}	

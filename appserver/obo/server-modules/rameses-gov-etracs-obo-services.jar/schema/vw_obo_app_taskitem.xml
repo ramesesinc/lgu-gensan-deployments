@@ -1,0 +1,33 @@
+<schema>
+	<element tablename="vw_obo_app_taskitem">
+		<field name="objid" primary="true"/>
+
+		<field name="appid" />
+		<field name="typeid" />
+		<field name="taskid" />
+		<field name="sectionid" />
+		<field name="org_objid" />
+		<field name="app_task_state" />
+		<field name="task_state" />
+		<field name="task_dtcreated" />
+		<field name="task_startdate" />
+		<field name="task_enddate" />
+		<field name="task_assignee_objid" />
+		<field name="task_assignee_name" />
+		<field name="task_actor_objid" />
+		<field name="task_actor_name" />
+		<field name="task_title" />
+		<field name="task_tracktime" />
+
+		<complex name="app" ref="vw_obo_app" jointype="many-to-one" required="true">
+			<key field="appid" target="objid" />
+		</complex>	
+		<complex name="type" ref="obo_taskitem_type" jointype="many-to-one" required="true">
+			<key field="typeid" target="objid" />
+		</complex>	
+
+	</element>
+</schema>	
+
+
+

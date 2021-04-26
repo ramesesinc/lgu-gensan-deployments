@@ -1,0 +1,57 @@
+import com.rameses.annotations.*;
+
+class OboApplicationService {
+	
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("ControlnoGeneratorService")
+	def controlNoSvc;
+
+	@Service("JasperEmailQueueService")
+    def emailSvc;
+
+	@DataContext(dynamic=true)
+	def db;
+
+	@DataContext("obo_doctype")
+	def doctypeEm;
+
+	@DataContext("vw_obo_app")
+	def vwAppEm;
+
+	@Env
+	def env;
+
+
+	@ProxyMethod
+	public def assignAppno(def o ) {
+		if(!o.appid) throw new Exception("appid is required in OboApplicationService");
+
+		def app = vwAppEm.find( [objid: o.appid ] ).select("appno,apptype").first();
+		if( app.appno ) return;
+
+		def doctypeid = app.apptype.toUpperCase();
+		def doctype = doctypeEm.find( [objid: doctypeid ] ).first();
+		if( !doctype ) 
+			throw new Exception( "doctype " + doctypeid + " not defined in document types" );
+		def pattern = doctype.appnopattern;
+		if(!pattern) throw new Exception("Please define appnopattern in " + doctypeid );
+
+		def appno = controlNoSvc.getNextNo( pattern );
+		def u = [:];
+		u.appdate = dateSvc.getServerDate();
+		u.appno = appno;
+		def appEm = db.lookup( app.apptype )
+		appEm.find( [objid: o.appid ] ).update( u );
+
+		if( o.sendmail ) {
+			emailSvc.send( [reportid: app.apptype + "_claimstub", refid: o.appid ]);
+		}
+
+		return appno;
+	} 
+
+
+
+}

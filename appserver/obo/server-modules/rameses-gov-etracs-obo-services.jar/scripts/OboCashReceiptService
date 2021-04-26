@@ -36,7 +36,7 @@ class OboCashReceiptService {
 		def resp = [items: res.items, billitems: billitems ]; 
 		resp.appid = res.objid;
 		resp.appno = res.appno;
-		resp.apptype = param.apptype;
+		resp.apptype = res.apptype;
 		resp.txntype = "obo";
 		resp.app = [appid: res.objid ];
 

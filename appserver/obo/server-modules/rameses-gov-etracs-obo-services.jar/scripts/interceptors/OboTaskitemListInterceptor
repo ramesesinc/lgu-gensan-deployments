@@ -1,0 +1,32 @@
+import com.rameses.annotations.*; 
+
+class OboTaskitemListInterceptor {
+	
+	@After(pattern="QueryService.getNodeList", eval="#{args[0]._schemaname == 'obo_taskitem_type' }")
+	public void getNodeList(def evt) {
+		def result = evt.result;
+		result << [apptype:"building_permit", title:"Building Permit" ];
+		result << [apptype:"occupancy_permit", title:"Occupancy Certificate" ];
+	}
+
+	@Before(pattern="QueryService.getList", eval="#{args[0]._schemaname == 'obo_taskitem_type' }")
+	public void loadList(def evt) {
+		def o = evt.args[0];
+		//o.debug = true;
+		if( !o.node?.apptype ) return;
+
+		def str = " apptype = :apptype";
+		def m = [apptype: o.node.apptype ];
+
+		//add to first position of where
+		if( o.where ) {
+			o.where[0] = str + " AND " + o.where[0];	
+			o.where[1].putAll( m );
+		}
+		else {
+			o.where = [str, m];
+		}
+	}
+
+
+}

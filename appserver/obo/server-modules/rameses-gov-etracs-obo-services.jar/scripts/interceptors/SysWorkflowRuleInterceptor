@@ -1,0 +1,72 @@
+import com.rameses.annotations.*;
+import workflow.facts.*;
+
+class SysWorkflowRuleInterceptor {
+
+	@Service("MenuNotificationService")
+	def notifySvc;
+
+	@Service("RuleExecutorService")
+	def ruleSvc;
+
+	@Env
+	def env;
+
+
+	@Before(pattern="WorkflowTaskService.signal", index=-1000 )
+	public void beforeExecute(def evt) {
+		def o = evt.args[0];
+		def winfo = new WfInfo();
+		if(o.info) winfo.putAll( o.info ); 
+		def facts = [];
+		facts << new WfTransition( processname: o.processname, action: o.action, fromstate: o.taskstate, refid: o.refid );
+		facts << winfo;		
+		ruleSvc.execute( "oboworkflow", facts, null, null );
+		if( winfo ) {
+			if(!o.info) o.info = [:];
+			o.info.putAll( winfo );
+		}
+	}
+
+	@Before(pattern="WorkflowTaskService.fireDecision", index=-1000 )
+	public void beforeFireDecision(def evt) {
+		def o = evt.args[0];
+		def winfo = new WfInfo();
+		if(o.info) winfo.putAll( o.info ); 
+
+		def facts = [];
+		facts << new WfDecision( processname:o.processname, name: o.name, refid: o.refid );
+		facts << winfo;		
+		ruleSvc.execute( "oboworkflow", facts, null, null );
+
+		if( winfo ) {
+			if(!o.info) o.info = [:];
+			o.info.putAll( winfo );
+		}
+	}
+
+	@After(pattern="WorkflowTaskService.signal", index=-1000 )
+	public void afterExecute(def evt) {
+		def o = evt.args[0];
+		def result = evt.result;
+
+		//fire also the after rules
+		def facts = [];
+		facts << new WfTaskResult( processname: result.processname, 
+			state: result.state, refid: result.refid, taskid: result.taskid,
+			fromstate: result.fromstate, fromaction: result.fromaction );
+
+		ruleSvc.execute( "oboworkflow", facts, null, null );
+	}
+
+	@After(pattern="WorkflowTaskService.signal", index=10000 )
+	public void fireNotification(def evt) {
+		if( env._notificationList ) {
+			env._notificationList << "obo";
+			notifySvc.notify( env._notificationList );
+		}
+	}
+
+
+
+}

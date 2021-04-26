@@ -8,7 +8,7 @@ class BuildingApplicationService {
 	@DataContext("obo_doctype")
 	def docTypeEm;
 
-	@DataContext("building_permit_doc")
+	@DataContext("obo_app_doc")
 	def subdocEm;
 
 	@DataContext("obo_control")
@@ -17,7 +17,7 @@ class BuildingApplicationService {
 	@DataContext("vw_building_permit")
 	def vwAppEm;
 
-	@DataContext("vw_building_evaluation")
+	@DataContext("vw_obo_app_taskitem")
 	def vwEvalEm;
 
 	@Env

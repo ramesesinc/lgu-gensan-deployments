@@ -5,5 +5,14 @@
 		<field name="parentid" />
 		<field name="title" />
 		<field name="fileid" />
+
+		<field name="createdby_objid" />
+		<field name="createdby_name" />
+		<field name="dtcreated" type="timestamp" />
+
+		<complex name="section" ref="obo_section" includefields="title" jointype="many-to-one" required="false">
+			<key field="parentid" target="objid" />		
+		</complex>	
+		
 	</element>
 </schema>

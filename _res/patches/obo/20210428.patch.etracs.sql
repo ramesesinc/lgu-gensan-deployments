@@ -1,5 +1,3 @@
-use obo_gensan;
-
 insert into sys_orgclass (name, title) values ('EXTERNAL','EXTERNAL OFFICE'); 
 
 insert into sys_org (objid, name, orgclass, code, root, txncode) 

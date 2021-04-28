@@ -154,19 +154,21 @@ class OboAppTaskitemService {
 		env._notificationList = notificationList;
 	}
 
-
 	@ProxyMethod
 	public void joinMainProcess( def o  ) {
 		if(!o.refid) throw new Exception("refid is required in OboAppTaskitemService.joinMainProcess");	
 		
 		def r = vwTaskitemEm.find( [objid: o.refid ]).first();
-		def state = r.app?.task?.state;
 		def appid = r.appid;
+		def state = r.app.task.state;
+
+		def str = " task.state NOT IN ('end', 'for-revision', 'obo-processing' ) AND type.joinstate = :state";
+		def parm = [state: state]; 
 
 		//check if there are no pending tasks so we can join the main process
-		def str = "type.joinstate = :joinstate AND task.tracktime = 1";
-		boolean exists = vwTaskitemEm.select("1").find( [appid: appid ]).where(str, [joinstate: state]).exists();
- 		if( !exists ) {
+		boolean exists = vwTaskitemEm.select("1").find( [appid: appid ]).where(str, parm).exists();
+ 		if( !exists && (state == r.type.joinstate)  &&  (r.type.activationstate == r.type.joinstate) ) {
+ 			//check if the join state matches the parents state then you can move
 			def f = [:];
 			f.processname = r.app.processname;
 			f.refid = r.appid;
@@ -174,39 +176,25 @@ class OboAppTaskitemService {
 			f.info = [appid:r.appid];
 			wfSvc.signal(f);	 		
  		}
-
  	}
 
-	@ProxyMethod
-	public void closeOboProcessing( def o  ) {
-		if(!o.appid) throw new Exception("appid is required in OboAppTaskitemService.closeOboProcessing");	
-		throw new Exception("Closing OBO Processing here");
-		def list = vwTaskitemEm.find( [appid: o.appid ]).where(" task.state = 'obo-processing' ").list();
-		throw new Exception("list found for obo process " + list*.objid);
-		list.each {
-			def f = [:];
-			f.processname = "obo_app_taskitem";
-			f.refid = it.objid;
-			f.startdate = dateSvc.getServerDate();
-			f.info = [appid:o.appid];
-			wfSvc.signal(f);
-		}
-	} 		
- 		
+
+ 	//This is called by the main app so that state here passed is the appstate.	
  	@ProxyMethod
  	public def validateHasUncompletedTasks( def o ) {
  		if(!o.appid) throw new Exception("appid is required in OboAppTaskitemService.validateAllTasksCompleted");
  		def app = vwAppEm.find( [objid: o.appid ]).first();
-
- 		def state = app.task.state;
- 		
-		def str = " type.joinstate = :joinstate AND task.tracktime = 1 ";
-		def openList = vwTaskitemEm.find( [appid: o.appid ]).where(str, [joinstate: state]).list();
-
+ 		def state = o.state;
+ 		def str = " task.state NOT IN ('for-revision', 'end', 'obo-processing') ";
+ 		def parm = [:];
+ 		if( state) {
+ 			str += " AND type.joinstate = :state ";
+ 			parm = [state: state];
+ 		}
+		def openList = vwTaskitemEm.find( [appid: o.appid ]).where(str, parm).list();
  		if(openList) {
  			throw new Exception("The following tasks are not yet completed.\n" + openList*.type.title.join("\n") )	 			
  		} 
- 		throw new Exception("Fire uncompleted tasks");
  	}
 
 	

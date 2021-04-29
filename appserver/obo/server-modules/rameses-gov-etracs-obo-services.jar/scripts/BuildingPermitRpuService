@@ -18,6 +18,13 @@ public class BuildingPermitRpuService  {
     @Service(value="EntityService", connection="entity")
     def entitySvc;
 
+    @Service("OboAppDocService")
+    def appDocSvc;
+
+    @Service("OboAppFeeService")
+    def appFeeSvc;
+
+
 	@Service("BillingRuleService")
 	def billingRuleSvc;
 
@@ -39,6 +46,12 @@ public class BuildingPermitRpuService  {
 	@DataContext("obo_itemaccount")
 	def itemAcctEm;
 
+	@DataContext("obo_app_doc")
+	def docEm;
+
+	@DataContext("obo_doctype")
+	def docTypeEm;
+
 	@ProxyMethod
 	public void generateDocs( def o ) {
 		def app, list;
@@ -51,6 +64,7 @@ public class BuildingPermitRpuService  {
 			app = appEm.find( [objid: rpu.appid ]).first();
 			list = [rpu];
 		}
+
 		list.each {
 			def params = [:];
 			params.entityid = entityEm.find( [objid: it.ownerid] ).first()?.profileid;			
@@ -93,6 +107,28 @@ public class BuildingPermitRpuService  {
 				rpuEm.find( [objid: it.objid ]).update( u );
 			}
 		}
+		assessFees( [appid: app.objid ] );
+	}
+
+	@ProxyMethod
+	public void assessFees( def o ) {
+		if(!o.appid) throw new Exception("appid is required in assess fees");
+		//search if there is the RPT_DOCUMENT if not create it.
+
+		def rptList = rpuEm.find( [appid: o.appid ] ).list();
+
+		def r = [:];	
+		r.totalcount = rptList.size();
+		r.byownercount = rptList.groupBy{ it.ownerid }.size();
+
+		def doc = appDocSvc.findDoc( [appid:o.appid, doctypeid:'BUILDING_RPT', create_if_not_exist: true] );
+
+		def factBuilder = new FactBuilder();
+		factBuilder.facts << new RpuCount( r );
+		rptList.each {
+			factBuilder.facts << new RpuEntry( [ownerid: it.ownerid] );
+		}	
+		appFeeSvc.assessFacts( [factBuilder: factBuilder, parentid: doc.objid, appid: o.appid, savefees: true ] );
 	}
 
 
@@ -150,6 +186,7 @@ public class BuildingPermitRpuService  {
     		throw new Exception("Please generate the RPT Documents first before proceeding");
     }
 
+    //This is called by the obo.actions.AddBuildingRpuInfo for the rules
     @ProxyMethod
     public def getRpuCount(def o) {
 		if(!o.appid) throw new Exception("Please include appid in BuildingPermitRpuService.validateRptDocs");

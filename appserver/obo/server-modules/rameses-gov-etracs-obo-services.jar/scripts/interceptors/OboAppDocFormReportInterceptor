@@ -122,7 +122,6 @@ class OboAppDocFormReportInterceptor {
 			docsub.amount = pay.amount;		
 		}
 
-		throw new Exception("receipt no " + docsub.receiptno );
 
 		//load evaluator. find the associated building evaluation
 		def zeval = vwEvalEm.find( [appid: docsub.appid, sectionid: docsub.sectionid ] ).first();

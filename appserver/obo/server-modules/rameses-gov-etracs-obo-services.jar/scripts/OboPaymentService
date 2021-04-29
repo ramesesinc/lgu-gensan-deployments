@@ -15,13 +15,12 @@ class OboPaymentService {
 	def appFeeEm;
 
 	@DataContext("vw_obo_app")
-	def appEm;
+	def vwAppEm;
 
 
 	@ProxyMethod
 	public void postPayment( o ) { 
 		if(!o.appid) throw new Exception("OboPaymentService.postPayment error. appid is required")
-		if(!o.apptype) throw new Exception("OboPaymentService.postPayment error. apptype is required")
 		if(!o.txndate) o.txndate = dateSvc.getServerDate();
 		if(!o.txnmode) o.txnmode = "CAPTURE";
 		if(!o.refno) o.refno = o.receiptno;
@@ -43,7 +42,7 @@ class OboPaymentService {
 		appFeeEm.find([ appid: o.appid ]).update([ amtpaid: "{amount}" ]); 
 
 		//we have to do this to ensure that the processname we are picking up is correct.
-		def app = appEm.find( [objid: o.appid] ).first();
+		def app = vwAppEm.find( [objid: o.appid] ).first();
 
 		//fire the workflow for release.
 		def m = [:];

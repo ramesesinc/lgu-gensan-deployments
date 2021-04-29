@@ -132,6 +132,35 @@ public class OboAppFeeService  {
 	}
 
 	@ProxyMethod
+	public def assessFacts(  def o ) {
+		if(!o.factBuilder ) throw new Exception("factBuilder is required in OboAppFeeService.assessFacts");
+		if(!o.appid) throw new Exception("appid is required in OboAppFeeService.assessFacts");
+		def req = [:];
+		req.factBuilder = o.factBuilder;
+		req.rulename = "oboassessment";
+		req.params = [rulename:req.rulename];
+		req.include_items = false;
+
+		def res = billingRuleSvc.execute( req );
+
+		def items = [];
+		res.billitems.findAll{ it.billcode && it.item == null && it.amount > 0 }.each {
+			def p = itemAcctEm.find( [objid: it.billcode ] ).first();
+			it.item = p;
+			if(o.parentid) it.parentid = o.parentid;
+			it.amtpaid = 0;
+			it.appid = o.appid;
+			it.sortorder = (p.sortorder == null ? 100 : p.sortorder);
+			items << it;			
+		};
+		if( o.savefees == true ) {
+			saveFees( [parentid: o.parentid, items: items ] );
+		}
+		return [items: items];
+	}
+
+
+	@ProxyMethod
 	public def assessAll( def o ) {
 		if(!o.appid) throw new Exception("appid is required in OboAppFeeService.assessAll");
 		def docList = vwDocEm.find( [appid: o.appid ]).where( "requirefee=1 AND (amount IS NULL OR amount=0) ").list();

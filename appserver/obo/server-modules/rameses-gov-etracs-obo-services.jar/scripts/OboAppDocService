@@ -134,6 +134,27 @@ public class OboAppDocService  {
     	bdoc.state = o.state;
 		return controlSvc.saveControl( bdoc );
 	}
+
+	@ProxyMethod
+	public def findDoc(  def  o ) {
+		if(!o.appid) throw new Exception("Error OboAppDocService.findDoc. appid is required");
+		if(!o.doctypeid) throw new Exception("Error OboAppDocService.findDoc. doctypeid is required");
+		def rptDoc = docEm.find( [appid: o.appid] ).where("doctype.objid = :doctype", [doctype:o.doctypeid]).first();
+		if(rptDoc) return rptDoc;
+		if(!o.create_if_not_exist)
+			throw new Exception("Document type " + o.doctypeid + " does not exist in this application");
+
+		def dt = doctypeEm.find([objid:o.doctypeid]).first();
+		if(!dt) throw new Exception("doctype " + o.doctypeid + " not found. Please create add first in doctypes");
+		rptDoc = [:];
+		rptDoc.appid = o.appid;
+		rptDoc.doctype = doctypeEm.find( [objid: o.doctypeid] ).first();
+		rptDoc.amount = 0;
+		rptDoc.state = 0;
+		rptDoc.doctypeid = o.doctypeid;	
+		docEm.create( rptDoc );
+		return docEm.find( [objid: rptDoc.objid] ).first();
+	}
 	
 	@ProxyMethod
     public void deleteDocuments( def o ) {

@@ -2,6 +2,7 @@ app:
    env:
       "obo.app.host": "${pub_app_server_ip}:8073"
       "obo.app.context": "enterprise"
+      "obo.ftp.connection": "pub-ftpsite"
 
       "cloud-server.app.host": "${pub_app_server_ip}:8500"
       "cloud-server.app.cluster": "cloud-server"

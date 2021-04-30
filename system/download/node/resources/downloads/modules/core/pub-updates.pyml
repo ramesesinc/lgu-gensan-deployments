@@ -4,7 +4,7 @@ app:
 
    modules:
       - { order: 100, version: 2.52, file: "modules/core/osiris2-client-themes.jar" }
-      - { order: 101, version: 2.53, file: "modules/core/osiris2-client-ui.jar" }
+      - { order: 101, version: 2.54, file: "modules/core/osiris2-client-ui.jar" }
       - { order: 102, version: 2.52, file: "modules/core/osiris2-draw.jar" }
       - { order: 103, version: 2.52, file: "modules/core/osiris2-framework.jar" }
       - { order: 104, version: 2.52, file: "modules/core/osiris2-report.jar" }

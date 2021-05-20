@@ -1,0 +1,33 @@
+import com.rameses.annotations.*; 
+
+class OboEPaymentInterceptor {
+
+	@Service(value="BuildingPermitBillingService", connection="obo")
+	def oboSvc;
+
+	@After(pattern="OnlinePaymentService.getBilling", eval="#{args[0].txntype=='building_permit'}")
+	public void fetchBilling( def evt ) { 
+		def r = evt.args[0];
+		def result = evt.result;
+		println "GET BILLING HERE .....";
+		def bill = oboSvc.getBilling( r );
+		result.putAll( bill );
+	}
+
+	@Before(pattern="OnlinePaymentService.createPaymentOrder", eval="#{args[0].txntype=='building_permit'}")
+	public void createPaymentOrder( def evt ) { 
+		def r = evt.args[0];
+		def result = evt.result;
+		def po = oboSvc.getPaymentOrderInfo( r );
+		r.info = po;
+	}
+
+	@After(pattern="EORService.post", eval="#{args[0].txntype=='building_permit'}")
+	public void afterPostPayment( def evt ) { 
+		def po = evt.args[0];
+		po.receipt = evt.result;
+		po.receipt.type = 'eor';
+		oboSvc.postPayment(po);
+	}
+
+}

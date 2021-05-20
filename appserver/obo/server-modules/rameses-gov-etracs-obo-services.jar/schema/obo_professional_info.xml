@@ -12,7 +12,7 @@
 		<field name="address_street" />
 		<field name="address_subdivision"/>
 		<field name="address_barangay_objid" />
-		<field name="address_barangay_name" required="true"/>
+		<field name="address_barangay_name" />
 		<field name="address_citymunicipality"/>
 		<field name="address_province" />
 		<field name="tin" />

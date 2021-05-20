@@ -3,19 +3,24 @@ import com.rameses.annotations.*;
 
 class OccupancyPermitInspectionTask {
 	
-	@DataContext("vw_occupancy_permit")
-	def vwOccupancyPermit;
+	@Service("WorkflowTaskService")
+	def wfSvc;	
+
+	@DataContext("vw_occupancy_certificate")
+	def vwAppEm;
 	
 	@Schedule(interval=1, timeUnit="MINUTES")
 	public void activateTasks( def tsk ) {
-		def activateTasks = vwOccupancyPermit.select("objid,appno,inspectiondate").where( "inspectiondate < NOW() AND task.state LIKE '%-wait%' " ).list();
+		def activateTasks = vwAppEm.select("objid,appno,inspectiondate").where( "inspectiondate < NOW() AND task.state LIKE '%-wait%' " ).list();
 		if(activateTasks) {
 			activateTasks.each {
-				println "firing tasks...." + it;
+				def  t = [:];
+				t.processname = "occupancy_certificate";
+				t.refid = it.objid;
+				t.info = [appid:it.objid];
+				wfSvc.signal( t );
 			}
 		}
-
-		
 	}
 
 

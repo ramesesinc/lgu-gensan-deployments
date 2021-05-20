@@ -30,7 +30,7 @@ class OboAppProfessionalService {
                 m.prcno = o.prc.idno;
                 m.profession = o.profession;
                 m.infoid = o.objid;
-                p = professionalEm.create( m );
+                professionalEm.create( m );
             }
         }
         return p;
@@ -39,20 +39,25 @@ class OboAppProfessionalService {
     @ProxyMethod
     public def addAppProfessional( def o ) {
         if(!o.appid) throw new Exception("appid is required in OboAppProfessionalService.addAppProfessional" );
-        if(!o.doctypeid) throw new Exception("doctypeid is required in OboAppProfessionalService.addAppProfessional" );
+        if(!o.doctypeid && !o.sectionid) 
+            throw new Exception("doctypeid or sectionid is required in OboAppProfessionalService.addAppProfessional" );
         if(!o.designprofessional) throw new Exception("designprofessional is required in OboAppProfessionalService.addAppProfessional" );
         if(!o.supervisor) throw new Exception("supervisor is required in OboAppProfessionalService.addAppProfessional" );
 
-        def dt = docTypeEm.find( [objid: o.doctypeid]).first();
+        def sectionid = o.sectionid;
+        if( !sectionid ) {
+            def dt = docTypeEm.find( [objid: o.doctypeid]).first();
+            sectionid = dt.sectionid;    
+        }
 
         def designer = saveProfessional( o.designprofessional );
         def supervisor = saveProfessional( o.supervisor );
 
         def m = [:];
         m.appid = o.appid;
-        m.sectionid = dt.sectionid;
-        if(designer) m.designprofessional = designer;
-        if(supervisor) m.supervisor = supervisor;
+        m.sectionid = sectionid;
+        if(designer?.objid) m.designprofessional = designer;
+        if(supervisor?.objid) m.supervisor = supervisor;
         m.remarks = o.remarks;
         appProfEm.create( m );
         return m;

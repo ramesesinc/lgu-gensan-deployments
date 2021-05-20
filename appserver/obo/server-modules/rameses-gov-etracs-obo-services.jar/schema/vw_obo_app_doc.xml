@@ -3,14 +3,10 @@
 		<field name="objid" primary="true"/>
 		<field name="appid" />
 		<field name="state" />
-		<field name="designprofessionalid" />
-		<field name="supervisorid" />
 		<field name="worktypes" />
-		<field name="contractorname" />
 		<field name="remarks" />
 		<field name="amount" />
 		<field name="controlid" />
-		<field name="occupancytypeid" />
 		<field name="projectcost" />
 		<field name="equipmentcost" />
 		<field name="org_objid" />

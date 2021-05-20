@@ -1,0 +1,16 @@
+<schema>
+	<element tablename="vw_obo_app_task">
+		<field name="taskid" primary="true"/>
+		<field name="processname" />		
+		<field name="refid" />
+		<field name="dtcreated" type="timestamp" caption="Date Created"/>
+		<field name="startdate" type="timestamp" caption="Start Date"/>
+		<field name="enddate" type="timestamp" caption="End Date"/>	
+		<field name="assignee_objid" />	
+		<field name="assignee_name" caption="Assignee"/>	
+		<field name="state" />	
+		<field name="tracktime" />	
+		<field name="title" caption="Task Title" />	
+	</element>
+</schema>
+

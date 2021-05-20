@@ -1,0 +1,71 @@
+import com.rameses.annotations.*;
+
+class BuildingPermitOboAppInterceptor {
+	
+	@Service("DateService")
+	def dateSvc;
+
+	@DataContext("building_permit_rpu")
+	def rpuEm;
+
+	@Env
+	def env;
+
+	@Before(pattern="OboAppService.create", eval="#{ args[0].appclass == 'building_permit' }")
+	public void beforeCreate(def evt) {
+		def app = evt.args[0];
+		app.occupancytypeid = app.occupancytype?.objid;
+
+		//build the documents
+		def doclist = [];
+    	if(app.ancillaries) {
+	    	app.ancillaries.each { anc->
+	    		anc.doctypeid = anc.permittypeid.toUpperCase();
+	    		anc.infos = app.infos.findAll{ it.parentid == anc.objid };
+	    		doclist << anc;
+	    	}
+    	}
+    	//loop next accessories
+    	if(app.accessories) {
+    		def z = [objid: app.objid+"_ACCESSORIES"];
+    		z.doctypeid = 'ACCESSORIES';
+    		def accInfos = [];		
+			app.accessories.each { acc->
+				def infos = app.infos.findAll{ it.parentid == acc.objid };
+				accInfos.addAll( infos );
+			}
+			z.infos = accInfos;
+			doclist << z;
+    	}		
+    	app.documents = doclist;
+
+    	def profs = [];
+    	app.ancillaries.findAll{ it.designprofessional!=null || it.supervisor!=null }.each { anc->
+			def p = [:];
+			p.designprofessional =  anc.designprofessional ;
+			p.supervisor =  anc.supervisor;
+			p.doctypeid =  anc.permittypeid.toUpperCase();
+			p.appid = app.objid;
+			profs << p;
+    	}
+    	app.professionals = profs;
+	}
+
+	@After(pattern="OboAppService.create", eval="#{ args[0].appclass == 'building_permit' }")
+	public void afterCreate(def evt) {
+		def app = evt.args[0];
+		def result = evt.result;
+
+		//save the RPUs
+		app.rpus.each {
+			it.appid = result.objid;
+			it.owner = [objid: it.ownerid ];
+			rpuEm.create( it );
+		}
+
+	}
+
+
+
+
+}

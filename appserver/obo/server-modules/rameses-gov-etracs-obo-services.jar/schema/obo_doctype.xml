@@ -4,7 +4,7 @@
 		<field name="title" searchable="true"/>
 		<field name="sortorder" />
 
-		<!-- Type is any of the ff: ANCILLARY,CLEARANCE,CHECKLIST -->
+		<!-- Type is any of the ff: STANDARD OR REPORT -->
 		<field name="type" indexed="true"/>
 
 		<complex name="section" ref="obo_section" jointype="many-to-one" required="false">
@@ -14,11 +14,12 @@
 		<!-- if 1 this would auto create when the application is created -->
 		<field name="autocreate" />
 
-		<!-- if 1 this would ensure before approval of evaluation there must be at least one feeitem -->
+		<!-- 0=fees not required 1=fees required before section approval  2=fees required before assessment -->
 		<field name="requirefee" />
 
 		<!-- if not null, this would allow display of the report -->
 		<field name="template" />
+		<field name="reportheader" />
 
 		<!--  0 - no issuance required, 1= auto issue,  2=manual issue -->
 		<field name="issuetype"  type="integer"/>

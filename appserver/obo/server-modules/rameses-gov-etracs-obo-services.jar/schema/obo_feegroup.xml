@@ -1,0 +1,7 @@
+<schema>
+	<element tablename="obo_feegroup">
+		<field name="objid" primary="true"/>
+		<field name="title" />
+		<field name="sortindex" type="integer" />		
+	</element>
+</schema>

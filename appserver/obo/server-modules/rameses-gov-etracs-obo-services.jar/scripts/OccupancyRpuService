@@ -8,7 +8,7 @@ class OccupancyRpuService {
 	@DataContext("occupancy_rpu")
 	def rpuEm;
 
-	@DataContext("occupancy_permit")
+	@DataContext("occupancy_certificate")
 	def appEm;
 
 	@Service("DateService")
@@ -20,8 +20,29 @@ class OccupancyRpuService {
 	@Service(value="RPTCertificationOnlineService", connection="rpt")
 	def rptCertSvc;
 
+	@Service("MenuNotificationService")
+    def notificationSvc;
+
     @Env
     def env;
+
+    @ProxyMethod
+    public void activateTask(def o) {
+    	if(!o.appid) throw new Exception("appid is required in OccupancyRpuService" );
+
+		def exists = rpuEm.find( [appid: o.appid ]).exists();
+		if( !exists ) {
+			def m = [:];
+			m.appid = o.appid;
+			m.state = 0;
+			m.dtcreated = dateSvc.getServerDate();
+			rpuEm.create( m ); 
+		}    
+    	def notList = [];
+		notList << "occupancy_rpu";
+		notList << "obo-rpt";
+		notificationSvc.notify( notList );
+    }
 
     @ProxyMethod
     public def getBldgRpus( def o  ) {
@@ -47,6 +68,27 @@ class OccupancyRpuService {
 		list << "occupancy_rpu";
 		list << "obo-rpt";
 		menuSvc.notify( list );							
+	}
+
+	@ProxyMethod
+	public void updateInfo( def o ) {
+		throw new Exception("Update info");
+		def app = permitEm.find([objid: p.refid]).first();
+		def r = [:];
+		r.faasid = rpu.faasid;
+		r.permitno = app.controlno;
+		r.permitdtissued = app.dtissued;
+		rptPluginSvc.updateOccupancy( r );
+		/*
+		def a = evt.args[0];
+		def res = evt.result;
+		def rpu = occRpu.find( [appid: a.appid ] ).first();
+		if( rpu?.faasid ) {
+			def m = [faasid: rpu.faasid, permitno: res.controlno, permitdtissued: res.dtissued] 
+			rptSvc.updateOccupancy( m );
+			occRpu.find( [objid: rpu.objid] ).update([state: 2]);			
+		}
+		*/
 	}
 
 	@ProxyMethod

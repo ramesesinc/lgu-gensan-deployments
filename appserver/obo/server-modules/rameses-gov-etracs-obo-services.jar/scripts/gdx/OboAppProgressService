@@ -2,18 +2,16 @@ import com.rameses.annotations.*;
 
 
 class OboAppProgressService {
-	/* 
-	  Parameters:
-	  apptype = building or occupancy
-	  refno = could be trackingno or appno
-	*/
+
+	@Service( "OboAppTrackingService" )
+	def appSvc;
 
 	@ProxyMethod
 	public def getInfo(  def o )  {
-		if(!o.apptype) throw new Exception("apptype is required in OboAppProgressService.getInfo")
-		if(!o.refno) throw new Exception("refno is required in OboAppProgressService.getInfo")
+		return appSvc.getInfo( o );
 
 		//build return values:
+		/*
 		def r = [:];
 		r.trackingno = "XXTRACKNO";
 		r.appno = "BP-2014-01-001 (SIMPLE)";
@@ -50,8 +48,8 @@ class OboAppProgressService {
         r.tasks << z2;
 
 		return r;
+		*/
 	}
-
 
 
 }

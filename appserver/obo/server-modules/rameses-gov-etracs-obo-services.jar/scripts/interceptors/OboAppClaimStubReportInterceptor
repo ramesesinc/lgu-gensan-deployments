@@ -8,26 +8,19 @@ class OboAppClaimStubReportInterceptor {
 	@DataContext(dynamic=true)
 	def db;
 
-	@After(pattern="FormReportService.getData", eval="#{args[0].reportid?.matches('.*_claimstub') }")
+	@DataContext("vw_obo_app")
+	def appEm;
+
+	@After(pattern="FormReportService.getData", eval="#{args[0].reportid == 'obo_app_claimstub' }")
 	public void getClaimStubReport( def evt ) {
 		def p = evt.args[0];
 		def result = evt.result;
 		def id = p.parameters.objid;
 
-		def appEm, taskEm, permitType;
-		if( p.reportid.startsWith("building") ) {
-			appEm = db.lookup( "vw_building_permit" );
-			taskEm = db.lookup( "building_permit_task" );
-			permitType = "BUILDING PERMIT";
-		}
-		else if(p.reportid.startsWith("occupancy")){
-			appEm = db.lookup( "vw_occupancy_permit" );
-			taskEm = db.lookup( "occupancy_permit_task" );
-			permitType = "CERTIFICATE OF OCCUPANCY";			
-		}
-		else {
-			throw new Exception("unsupported claim stub " + p.reportid );
-		}
+		def app = appEm.find( [objid: id ]).first();
+		def permitType = app.doctitle;
+
+		def taskEm = db.lookup( app.processname + "_task" );
 
 		def ea = appEm.find( [objid: id ] ).first();
 		def r = taskEm.find( [refid: id, state: 'requirement-verification'] ).orderBy("dtcreated DESC").first();
@@ -41,23 +34,15 @@ class OboAppClaimStubReportInterceptor {
 		result.data = ea;
 	}	
 
-	@Before(pattern="JasperEmailQueueService.send", eval="#{args[0].reportid?.matches('.*_claimstub') }")
+	@Before(pattern="JasperEmailQueueService.send", eval="#{args[0].reportid == 'obo_app_claimstub' }")
 	public void beforeQueueEmail( def evt ) {
 		def p = evt.args[0];
-		def appEm;
-		if( p.reportid.startsWith("building") ) {
-			appEm = db.lookup( "vw_building_permit" );
-		}
-		else {
-			appEm = db.lookup( "vw_occupancy_permit" );
-		}
 		def ea = appEm.find( [objid: p.refid ] ).first();
 		if ( !p.to ) p.to = ea.contact.email;
-		
 		p.info = ea;
 	}
 
-    @Before(pattern="JasperReportEmailService.send", eval="#{ args[0].reportid.matches('.*_claimstub') }", index=-10000)
+    @Before(pattern="JasperReportEmailService.send", eval="#{ args[0].reportid == 'obo_app_claimstub' }", index=-10000)
     public void emailClaimstub(def evt) {
         def o = evt.args[0];
         def refid = o.refid;

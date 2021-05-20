@@ -6,6 +6,7 @@
 		<field name="sortorder" />
 		<field name="type" />
 		<field name="template" />
+		<field name="reportheader" />
 		<field name="autocreate" />
 		<field name="issuetype" />
 		<field name="requirefee" />

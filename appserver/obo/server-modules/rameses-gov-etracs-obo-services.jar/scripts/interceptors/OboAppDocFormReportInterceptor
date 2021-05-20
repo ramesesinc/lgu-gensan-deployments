@@ -12,16 +12,25 @@ class OboAppDocFormReportInterceptor {
 	def db;
 
 	@DataContext("vw_obo_app_taskitem")
-	def vwEvalEm;
+	def vwAppTaskitemEm;
 
 	@DataContext("obo_app_taskitem_task")
 	def evalTaskEm;
 
 	@DataContext("vw_obo_payment")
+	def vwDocPayEm;
+
+	@DataContext("obo_payment")
 	def payEm;
+
+	@DataContext("vw_obo_app")
+	def appEm;
 
 	@DataContext("obo_app_doc_checklist")
 	def checkListEm;
+
+	@DataContext("obo_app_professional")
+	def appProfEm;
 
 	@DataContext("sys_signature")
 	def signatureEm;
@@ -31,16 +40,22 @@ class OboAppDocFormReportInterceptor {
 
 	private def findDoc( def id ) {
 		def docsub = vwSubdocEm.find([objid: id ]).first();
-		def appName = docsub.doctype.apptype;
+		def vapp = appEm.find( [objid: docsub.appid ] ).select("appclass,schemaname,doctitle").first();
 
 		def rpuEm = null;
-		def vwAppEm = db.lookup( "vw_"+ appName);
-		def appTaskEm = db.lookup( appName + "_task"); 
+		def vwAppEm = db.lookup( vapp.schemaname);
+		def appTaskEm = db.lookup( vapp.appclass + "_task"); 
 
 		def app = vwAppEm.find( [objid: docsub.appid ] ).first();
+
 		if( docsub.template == null ) {
 			docsub.template = docsub.doctype.template;
 		}
+		if( docsub.reportheader == null ) {
+			docsub.reportheader = docsub.doctype.reportheader;
+		}
+		docsub.header = docsub.reportheader;
+
 		if( docsub.endorserid == null ) {
 			docsub.endorserid = docsub.doctype.endorserid;		
 		}
@@ -57,16 +72,19 @@ class OboAppDocFormReportInterceptor {
 				docsub.lotno = rpus*.lotno.join(",");						
 			}		
 		};
-
+		
 		docsub.contact = app.contact;
+
 		docsub.applicant = app.applicant;
 		docsub.location = app.location;
 		docsub.occupancytype = app.occupancytype;
 		docsub.appno = app.appno;
+		docsub.trackingno = app.trackingno;
 		docsub.apptype = app.apptype;
 
 		//this is dtfiled due to the reports
 		docsub.dtfiled = app.appdate;		
+		docsub.appdate = app.appdate;
 		docsub.permitno = app.controlno;
 		docsub.title = app.title;
 		docsub.numunits = app.numunits;
@@ -77,6 +95,10 @@ class OboAppDocFormReportInterceptor {
 		docsub.totalfloorarea = app.totalfloorarea;
 		docsub.height = app.height;
 		docsub.numfloors = app.numfloors;
+
+		//if completed, used for occupancy
+		docsub.dtactualcompleted = app.dtactualcompleted;
+		if(app.bldgpermit) docsub.bldgpermit = app.bldgpermit; 
 
 		if(app.worktypes) {
 			docsub.worktypes = app.worktypes?.join(", ");
@@ -115,32 +137,40 @@ class OboAppDocFormReportInterceptor {
 			feeParentid = papp.objid;
 		}
 
-		def pay = payEm.find( [ parentid: feeParentid ] ).select("payment.refno,payment.refdate,amount:{SUM(amount)}").groupBy("payment.refno,payment.refdate").first();
-		if( pay?.payment ) {
-			docsub.receiptno = pay.payment.refno;
-			docsub.receiptdate = pay.payment.refdate;
-			docsub.amount = pay.amount;		
+		def rct = payEm.find( [appid: docsub.appid ] ).first();
+		if( rct ) {
+			docsub.receiptno = rct.refno;
+			docsub.receiptdate = rct.refdate;
+			def pay = vwDocPayEm.find( [ parentid: feeParentid ] ).select("amount:{SUM(amount)}").groupBy("payment.refno,payment.refdate").first();
+			if( pay?.payment ) {
+				docsub.amount = pay.amount;		
+			}
+			docsub.receiptamount = rct.amount;
 		}
 
-
-		//load evaluator. find the associated building evaluation
-		def zeval = vwEvalEm.find( [appid: docsub.appid, sectionid: docsub.sectionid ] ).first();
+		//load evaluator. find the associated task item
+		def zeval = vwAppTaskitemEm.find( [appid: docsub.appid, sectionid: docsub.sectionid ] ).first();
 		if( zeval ) {
 			//load evaluator
-			def tsk = evalTaskEm.find( [refid: zeval.objid, state:'evaluation' ] ).orderBy("dtcreated DESC").first();
-			docsub.evaluator = tsk.assignee;
-			docsub.dtevaluated = tsk.enddate;
-			docsub.dtapproved = tsk?.enddate;
+			def tsk = evalTaskEm.find( [refid: zeval.objid ] ).where(" state IN ('evaluation', 'inspection') ").orderBy("dtcreated DESC").first();
+			if(tsk) {
+				def info = [:];
+				if(tsk.assignee?.objid) {
+					info = signatureEm.find( [userid: tsk.assignee.objid ] ).first();
+				}
+				if(!info) info = [displayname: tsk.assignee.name];
+				if(tsk.state == 'evaluation') {
+					docsub.evaluator = info;
+					docsub.dtevaluated = tsk.enddate;
+				}
+				else {
+					docsub.inspector = info;
+					docsub.dtinspected = tsk.enddate;
+				}
+				docsub.dtapproved = tsk?.enddate;
+			}
 		}
-
-		if( docsub?.evaluator?.objid ) {
-			def info = signatureEm.find( [userid: docsub.evaluator.objid] ).first();
-			if(info) {
-				docsub.evaluator.signature = info.signature;
-				docsub.evaluator.displayname = info.displayname;
-			}	
-		}
-
+	
 		//load issuer
 		if( docsub.issuedby?.objid ) {
 			def info = signatureEm.find( [userid: docsub.issuedby.objid] ).first();
@@ -157,8 +187,28 @@ class OboAppDocFormReportInterceptor {
 		if( docsub.approverid ) {
 			docsub.approver = signatureEm.find( [objid: docsub.approverid] ).first(); 
 		}
-		docsub.permittype = (appName.contains('building')) ? "BUILDING PERMIT" : "OCCUPANCY PERMIT";
+		docsub.permittype = vapp.doctitle;
+		docsub.supervisor = app.supervisor;
 
+		//load the main documents for reference
+		def dlist = vwSubdocEm.find([appid: docsub.appid ]).where(" doctype.type='MAIN' AND objid <> :id", [id: id] ).select("controlno,dtissued,doctype.objid,amount").list();
+		def zz = [:];
+		dlist.each {
+			def z = [controlno: it.controlno, dtissued: it.dtissued, amount: it.amount ];
+			docsub.put( it.doctype.objid.toLowerCase(), z );
+		}
+
+		//documents that have professionals
+		if(docsub.doctype.sectionid ) {
+			def s1 = docsub.doctype.sectionid;
+			def prof1 =	appProfEm.find( [appid: docsub.appid ] ).where(  "section.objid = :sectionid ", [sectionid: s1] ).first();
+			if(prof1) {
+				def z1 = [:];
+				z1.designprofessional = prof1.designprofessional;  
+				z1.supervisor = prof1.supervisor;
+				docsub.put( s1.toLowerCase(), z1);		
+			}	
+		}
 		return docsub;
 	}
 

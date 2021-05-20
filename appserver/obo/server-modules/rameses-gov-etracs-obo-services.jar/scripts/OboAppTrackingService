@@ -1,0 +1,227 @@
+import com.rameses.annotations.*;
+import com.rameses.functions.*;
+import com.rameses.util.*;
+
+class OboAppTrackingService {
+	
+	@DataContext("vw_obo_app")
+	def vwAppEm;
+
+	@DataContext("vw_obo_app_task")
+	def vwTaskEm;
+
+	@DataContext("vw_obo_app_taskitem_task")
+	def vwTaskitemTaskEm;
+
+	@Service("DateService")
+	def dateSvc;
+
+	@Service(value="HolidayService", connection="enterprise")
+	def holidaySvc;
+
+	def formatTime = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm");
+	def formatDay = new java.text.SimpleDateFormat("yyyy-MM-dd");
+
+	def holidayProvider = { dt->
+		def h = holidaySvc.lookup(dt);
+		return (h!=null);
+	} as HolidayProvider;
+
+	// ****************************************************************
+	// This returns the no. of hours diff. considering the ff:
+	// start time of day is 8:00 and end on 17:00
+	// holidays, saturdays or sundays are not included
+	// ****************************************************************
+
+	def calcHourDiff( def startday, def startdate, def enddate ) {
+		def startTime = formatTime.parse( startday + " 08:00");
+        def endTime = formatTime.parse( startday + " 17:00"); 
+
+        //check first if this is a holiday or not a workday
+        def td = DateFunc.getFindNextWorkDay( startTime, holidayProvider );
+        def testDay = formatDay.format( td );
+        if( testDay != startday ) {
+        	//if day is holiday or not a workday return immediately
+        	return [hours:0, minutes:0];
+        }
+
+       	if(startdate!=null && startdate.after(startTime) ) startTime = startdate;
+       	if(enddate!=null && enddate.before(endTime) ) endTime = enddate;
+       	def r = [:];
+       	r.hours = DateUtil.diff(startTime, endTime, Calendar.HOUR );
+        r.minutes = DateUtil.diff(startTime, endTime, Calendar.MINUTE )%60;	
+        if( r.hours < 0 ) r.hours = 0;	
+        if( r.minutes < 0 ) r.minutes = 0;	        
+        return r;
+	}
+
+	def calcDaysDiff( def fromdate, todate ) {
+		fromdate = formatDay.parse(formatDay.format( fromdate ));
+		todate = formatDay.parse(formatDay.format( todate ));
+		//if it is only a one day difference return immediately.
+		def td = DateFunc.getDayAdd( fromdate, 1 );
+		def testDate = DateFunc.getFindNextWorkDay( td, holidayProvider );
+		if( formatDay.format(testDate) == formatDay.format(todate) ) {
+			return [hours:0, minutes:0];
+		}
+
+
+		def days = 0;
+		while( true ) {
+			testDate = DateFunc.getFindNextWorkDay( testDate, holidayProvider );
+			if( testDate.after(todate) ) {
+				break;
+			}
+			else if( formatDay.format(testDate) == formatDay.format(todate)  ) {
+				break;
+			}
+			else {
+				days++;
+				testDate = DateFunc.getDayAdd( testDate ,1 );
+			}
+		}
+		return [hours: days * 9, minutes: 0, days: days];		
+	}
+
+	@ProxyMethod
+	public def calcHours( def o ) {
+	    def sfromdate = (o.fromdate instanceof java.sql.Timestamp) ? formatTime.format( o.fromdate ) : o.fromdate.toString();
+	    def stodate = (o.todate instanceof java.sql.Timestamp) ? formatTime.format( o.todate ) : o.todate.toString();
+
+	    def fromdate = formatTime.parse(sfromdate);
+	    def todate = formatTime.parse(stodate);
+
+        def startday = formatDay.format( fromdate );
+        def endday = formatDay.format( todate );
+
+        if(startday == endday ) {
+        	return calcHourDiff( startday, fromdate, todate );
+        }
+        else {
+        	//split into three - first day, middle days then enddays
+        	def r1 = calcHourDiff( startday, fromdate, null );
+        	def r2 = calcDaysDiff( fromdate, todate );
+        	def r3 = calcHourDiff( endday, null, todate );
+        	def hrs = r1.hours + r2.hours + r3.hours;
+        	def mins = r1.minutes + r2.minutes + r3.minutes;
+        	if(mins>60) {
+        		hrs = hrs + ((int)(mins / 60));
+        		mins = mins % 60;
+        	}
+        	return [hours: hrs, minutes: mins];
+        }
+	}
+
+	@ProxyMethod
+	public def getInfo(  def o )  {
+		def p = [:];
+		if(o.appno) p.appno = o.appno;
+		else if(o.trackingno) p.trackingno = o.trackingno;
+		else if(o.refno) p.appno = o.refno;
+		else if(o.objid) p.objid = o.objid;
+		def app = vwAppEm.find( p ).first();
+		if(!app) throw new Exception("Application "  + p + " not found");
+
+		def r = [:];
+		r.title = app.doctitle;
+		r.trackingno = app.trackingno;
+		r.appno = app.appno;
+		r.doctitle = app.doctitle;
+		r.appdate = app.appdate;		
+		r.txntype = app.txntype;
+		r.applicant = app.applicant;
+		r.title = app.title;
+		r.location = app.location;
+
+		//temporary
+		r.applicant.txntype = r.txntype;
+
+		def nowdate = dateSvc.getServerDate();
+
+		def df = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm");
+		def formatDate = { d->
+			if(d==null) return df.format( nowdate );
+			return df.format( d );
+		}
+
+		def sectionTasks = vwTaskitemTaskEm.find( [appid: app.objid ] ).list();
+
+		def fetchSections = { st->
+			def vsections = [];
+			def enddate = st.enddate!=null? st.enddate : nowdate;
+			def subTasks = sectionTasks.findAll{ it.dtcreated >= st.dtcreated &&  it.dtcreated < enddate  };
+
+			def subSections = subTasks.groupBy{ it.section };
+			subSections.each { k,v->
+				def entry = [:];
+				entry.title = k;
+				entry.subtasks = v.sort{ it.dtcreated }.collect{ie-> [
+					title: ie.title, 
+					startdate: formatDate(ie.dtcreated), 
+					enddate:formatDate(ie.enddate),
+					fromdate: ie.dtcreated,
+					todate: ie.enddate
+				] };  
+				entry.status = "Completed";
+				def frev = entry.subtasks.find{ it.title == 'For Revision' };
+				if( frev ) {
+					entry.subtasks.remove( frev );
+					entry.status = "For Revision";
+				};
+				def thr=0; 
+				def tmin=0;
+				entry.subtasks.each {
+					def t = calcHours( [fromdate:it.fromdate, todate:it.todate] );
+					thr += t.hours;
+					tmin+= t.minutes; 
+					if(tmin>60) {
+						thr+= ((int)(tmin /60));
+						tmin = tmin % 60;
+					}
+					it.hours = String.format("%02d",t.hours) + ":" + String.format("%02d", t.minutes);
+				}
+				if( entry.subtasks ) {
+					entry.startdate = entry.subtasks.first().startdate;
+					entry.enddate = entry.subtasks.last().enddate;
+				}
+				entry.hours = String.format("%02d",thr) + ":" + String.format("%02d", tmin);
+				vsections << entry;	
+			}
+			return vsections;
+		}
+
+		def tasks = vwTaskEm.find( [refid: app.objid] ).orderBy( "dtcreated" ).where("state NOT IN ('receiving', 'requirement-verification', 'requirement-revision')  ").list().collect{
+			[   
+				title: it.title,
+				tracktime: it.tracktime, 
+				state:it.state, 
+				startdate: formatDate(it.dtcreated), 
+				enddate: formatDate(it.enddate), 
+				status: (it.enddate ==null) ? 'Ongoing' : 'Completed', 
+				hours: 0,
+				sections: fetchSections( it )
+			]	
+		};
+		tasks.each {
+			if( it.sections.find{ it.status == 'For Revision' }	!=null ) it.status = "For Revision";
+			if(it.tracktime==1) {
+				def t = calcHours( [fromdate:it.startdate, todate:it.enddate] );
+				it.hours = String.format("%02d",t.hours) + ":" + String.format("%02d", t.minutes);	
+				it._hours = t.hours;
+				it._minutes = t.minutes;		
+			}
+			else {
+				it.title += "( For Applicant )";
+				it.remove("startdate");
+				it.remove("enddate");
+				it.remove("hours");
+			}
+		}
+		r.tasks = tasks;
+
+		return r;
+	}
+
+
+
+}

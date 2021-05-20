@@ -71,6 +71,9 @@ class OboAppTaskitemService {
 		else if( o.viewtype == "completed" ){
 			wStr = " task.state = 'end' ";
 		}
+		else if( o.viewtype == "revision" ){
+			wStr = " task.state = 'for-revision' ";
+		}		
 		else {
 			wStr = "1=1"
 		}
@@ -92,11 +95,10 @@ class OboAppTaskitemService {
 	//CALLED BY RuleAction
 	@ProxyMethod
 	public void activateTaskitems( def o ) {
-		if(!o.appname) throw new Exception("appname is required in OboAppTaskitemService.activateTaskItems");
 		if(!o.appid) throw new Exception("appid is required in OboAppTaskitemService.activateTaskItems");
 		if(!o.state) throw new Exception("state is required in OboAppTaskitemService.activateTaskItems");
 
-
+		def app = vwAppEm.find( [objid: o.appid ]).first();
 		def dt = dateSvc.getServerDate();
 		def notificationList = [];
 
@@ -118,7 +120,7 @@ class OboAppTaskitemService {
 			}
 		}
 
-		def taskTypes = taskItemTypeEm.find( [apptype: o.appname, activationstate: o.state ] ).list();
+		def taskTypes = taskItemTypeEm.find( [apptype: app.appclass, activationstate: o.state ] ).list();
 		taskTypes.each {
 			if(it.required==1) {
 				createTask( it );

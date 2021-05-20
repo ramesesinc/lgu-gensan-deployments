@@ -14,6 +14,9 @@ class BuildingPermitService {
 	@DataContext("vw_obo_app_doc")
 	def subdocEm;
 
+	@DataContext("obo_app_professional")
+	def profEm;
+
 	@Service("DateService")
 	def dateSvc;
 
@@ -27,8 +30,8 @@ class BuildingPermitService {
 		if(!perm)
 			throw new Exception("Permit "+p.permitno + " does not exist");
 		perm.permitno = perm.controlno;	
-		//add also the professionals	
-		perm.professionals = subdocEm.select("sectionid,designprofessionalid,supervisorid").find( [appid: perm.appid ] ).where( " NOT(sectionid IS NULL ) AND NOT(designprofessionalid IS NULL) ").list();
+		perm.professionals = profEm.find([appid: perm.objid]).where("NOT(sectionid IS NULL)").list();
+
 		return perm;
 	}	
 

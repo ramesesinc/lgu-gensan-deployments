@@ -6,7 +6,7 @@ class OboTaskitemListInterceptor {
 	public void getNodeList(def evt) {
 		def result = evt.result;
 		result << [apptype:"building_permit", title:"Building Permit" ];
-		result << [apptype:"occupancy_permit", title:"Occupancy Certificate" ];
+		result << [apptype:"occupancy_certificate", title:"Occupancy Certificate" ];
 	}
 
 	@Before(pattern="QueryService.getList", eval="#{args[0]._schemaname == 'obo_taskitem_type' }")

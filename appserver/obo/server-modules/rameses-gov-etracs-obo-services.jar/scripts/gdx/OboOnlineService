@@ -11,7 +11,7 @@ class OboOnlineService  {
     @Service(value="EntityService", connection="entity")
     def entitySvc;
 
-    @Service("BuildingApplicationService")
+    @Service("OboAppService")
     def appSvc;
 
     @Service("BuildingPermitService")
@@ -65,11 +65,13 @@ class OboOnlineService  {
 
     @ProxyMethod
     public def verifyApplication( def params ) {
-        def app = appSvc.verifyApp(params);
+        def vapp = appSvc.findApp(params);
+        if( !vapp.contact.email ) throw new Exception("Contact email is not specified for this application. Please contact the OBO Office");
         Random rand = new Random();
         def otp = rand.nextInt(100000000);
-        app.key = String.format("%06d", otp).substring(0,6);
 
+        def app = [trackingno:vapp.trackingno, appno:vapp.appno, email: vapp.contact.email, mobileno: vapp.contact.mobileno ];
+        app.key = String.format("%06d", otp).substring(0,6);
         def msg = " Your 6 digit validation key is " + app.key;
         emailSvc.send([ to: app.email, subject:msg, message: msg ]);
 

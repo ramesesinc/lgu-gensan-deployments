@@ -46,11 +46,16 @@ public class OboAppDocInfoService  {
 			else if( it.datatype == 'integer') it.value = it.intvalue;
 			else if( it.datatype == 'boolean')  it.value = ( (it.booleanvalue == 0) ? false: true);
 			else if( it.datatype == 'lookup')  {
-				def lv = [:];
-				def arr = it.lookupvalue.split("-");
-				lv.key = arr[0];
-				lv.title = (arr.length>1) ? arr[1] : arr[0];
-				it.value = [ objid:it.lookupkey,key:lv.key, title:lv.title];			
+				if(it.lookupvalue!=null) {
+					def lv = [:];
+					def arr = it.lookupvalue.split("-");
+					lv.key = arr[0];
+					lv.title = (arr.length>1) ? arr[1] : arr[0];
+					it.value = [ objid:it.lookupkey,key:lv.key, title:lv.title];							
+				}
+				else {
+					it.value = [ objid:'', key:'', title:'' ]; 
+				}				
 			}	
 			else it.value = it.stringvalue;
 		}

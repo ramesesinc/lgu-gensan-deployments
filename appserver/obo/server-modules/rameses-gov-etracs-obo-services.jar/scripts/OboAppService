@@ -1,0 +1,263 @@
+import com.rameses.annotations.*;
+import java.rmi.server.*;
+
+class OboAppService {
+	
+	@Service("DateService")
+	def dateSvc;
+
+	@Service("ControlnoGeneratorService")
+	def controlNoSvc;
+
+	@Service("JasperEmailQueueService")
+    def emailSvc;
+
+    @Service("OboAppProfessionalService")
+	def profSvc;
+
+	@Service("OboConstructionCostRuleService")
+	def costSvc;
+
+	@Service("OboAppRequirementService")
+	def reqSvc;
+
+	@Service("OboAppDocService")
+	def appDocSvc;
+
+	@Service("WorkflowTaskService")
+	def wfSvc;
+
+	@DataContext(dynamic=true)
+	def db;
+
+	@DataContext("obo_doctype")
+	def doctypeEm;
+
+	@DataContext("vw_obo_app")
+	def vwAppEm;
+
+	@DataContext("obo_appno")
+	def appnoEm;
+
+	@DataContext("obo_app_entity")
+	def entityEm;
+
+	@DataContext("obo_payment")
+	def paymentEm;
+
+	@DataContext("obo_app_fee")
+	def feeEm;
+
+	@Env
+	def env;
+
+	@ProxyMethod
+	public def findApp( def o  ) {
+		def app = vwAppEm.find( o ).first();
+		//this is to fix web based request. In the request only trackingno was specified;
+		if(!app) app = vwAppEm.find( [appno: o.trackingno] ).first();
+		if(!app) throw new Exception("Tracking no. or App No " + o.trackingno + " does not exist");
+		return app;
+	}
+
+
+	@ProxyMethod
+	public def assignAppno(def o ) {
+		if(!o.appid) throw new Exception("appid is required in OboAppService");
+
+		def app = vwAppEm.find( [objid: o.appid ] ).select("objid,appno,appclass").first();
+		if( app.appno ) return;
+
+		def doctypeid = app.appclass.toUpperCase();
+		def doctype = doctypeEm.find( [objid: doctypeid ] ).first();
+		if( !doctype ) 
+			throw new Exception( "doctype " + doctypeid + " not defined in document types" );
+		def pattern = doctype.appnopattern;
+		if(!pattern) throw new Exception("Please define appnopattern in " + doctypeid );
+
+		def appno = controlNoSvc.getNextNo( pattern );
+
+		//test first the appno table if it can be saved
+		def test = [appid:app.objid, appno:appno];
+		appnoEm.create( test );
+
+		def u = [:];
+		u.appdate = dateSvc.getServerDate();
+		u.appno = appno;
+		def appEm = db.lookup( app.appclass )
+		appEm.find( [objid: o.appid ] ).update( u );
+
+		if( o.sendmail ) {
+			emailSvc.send( [reportid: "obo_app_claimstub", refid: o.appid ]);
+		}
+
+		return appno;
+	} 
+
+	private def calcFixedCost( def app ) {
+		if(!app.totalfloorarea) return null;
+		if(!app.occupancytype) return null;
+		def param = [:];
+		param.app = [apptype:app.apptype, totalfloorarea:app.totalfloorarea];
+		param.occupancytype = app.occupancytype;
+		return costSvc.calc( param );
+	}
+
+ 	private def calcTxnType( def app ) {
+ 		if(!app.occupancytype) return null;
+    	def occupancytype = app.occupancytype;
+		def txntype = 'COMPLEX';
+		if (occupancytype.group.objid == 'A' && app.totalfloorarea <= 1500 && app.numfloors <= 3) 
+			txntype = "SIMPLE";
+		else if (occupancytype.group.objid == 'E' && app.totalfloorarea <= 1500 && app.numfloors <= 2) 
+			txntype = "SIMPLE";
+		else if (occupancytype.group.objid == 'F' && app.totalfloorarea <= 1500) 
+			txntype = "SIMPLE";
+		return txntype;	
+    }
+
+	private def formatAddress( def addr ) {
+		if(!addr) return "";
+		def lst = [];
+		lst << [addr.unitno, addr.bldgno, addr.bldgname ].findAll{it!=null}.join(" ");
+		lst << [addr.street, addr.subdivision ].findAll{it!=null}.join(",");
+		lst << [addr.barangay?.name, addr.citymunicipality, addr.province ].findAll{it!=null}.join(",");
+		return lst.findAll{it}.join(",");		
+	}
+
+	//create permit for capture
+    private def saveControl( def app ) {
+    	if(!app.permitno) return null;
+    	def permit = [:];
+    	permit.appid = app.objid;
+    	permit.doctypeid = app.appclass.toUpperCase();	
+    	permit.controlno = app.permitno;
+    	permit.dtissued = app.permitdtissued;
+    	permit.expirydate = app.permitexpirydate;
+    	permit.state = 3;
+    	return appDocSvc.createAndIssue( permit );
+    }
+
+    //save payment
+    private def savePayment( def app ) {
+    	if(!app.receiptno) return null;
+		def pmt = [:];
+		pmt.appid = app.objid;
+		pmt.refno = app.receiptno;
+		pmt.refdate = app.receiptdate;
+		pmt.amount = app.amtpaid;
+		pmt.reftype = "cashreceipt";
+		pmt.voided = 0;
+		return paymentEm.create( pmt );	
+    }
+
+	@ProxyMethod
+	public def create( def app ) {
+		if(!app.appclass) throw new Exception("appclass is required in OboAppService.create");
+		//save the obo app first before determining the schema used
+		if(!app.applicant) throw new Exception("Applicant is required");
+		
+		if(app.trackingno) {
+			def orgno = env.ORGID;
+			if( !app.trackingno.startsWith(orgno) ) {
+				app.trackingno = orgno + "-" + app.trackingno;
+			}
+		}	
+
+		app.objid = "BAPP" + new UID();
+		app.doctypeid = app.appclass.toUpperCase();
+		app.orgcode = env.ORGID;
+
+		if(!app.location?.text) {
+			app.location?.text = formatAddress( app.location );
+		}
+
+		//remove appid from applicant so it can be saved
+		app.applicant.remove("appid");
+		app.applicant = entityEm.create( app.applicant );
+		app.applicantid = app.applicant.objid;
+
+		//save the supervisor
+		def supervisor = profSvc.saveProfessional( app.supervisor );		
+		if(supervisor) {
+			app.supervisor = supervisor;
+			app.supervisorid = supervisor.objid;
+		};		
+
+		app.createdby = [objid: env.USERID, name: env.FULLNAME];
+		app.dtcreated = dateSvc.getServerDate();
+		app.fixedcost = calcFixedCost( app ); 
+		app.txntype = calcTxnType( app );		
+
+		def appEm = db.lookup( app.appclass.toLowerCase() );
+		appEm.create( app );
+
+		//save appid of entity
+		entityEm.find( [objid: app.applicant.objid ] ).update( [appid: app.objid] );
+
+		if( app.txnmode == "CAPTURE" ) {
+			//save the task
+			def atask = [:];
+			atask.refid = app.objid;
+			atask.state =  app.task.state;
+			atask.dtcreated = dateSvc.getServerDate();
+			def appTaskEm = db.lookup(app.appclass + "_task");
+			def tsk = appTaskEm.create( atask );
+			appEm.find([objid:app.objid]).update( [taskid: tsk.taskid] );
+
+			if(!app.appno) {
+				assignAppno( [appid: app.objid ] );
+			}	
+			else {
+				//test the appno if unique
+				def test = [appid: app.objid, appno: app.appno ];
+				appnoEm.create( test );
+			}
+			if( app.task.state.matches('receiving|.*requirement.*') ) {
+				reqSvc.saveInitial( [apptype: app.appclass.toLowerCase(), appid: app.objid ] );
+			}
+			if( app.task.state != 'end') {
+				//save the documents
+				appDocSvc.saveInitial(  [appid: app.objid, apptype: app.appclass.toLowerCase(), doclist:[] ]  );				
+			}
+			saveControl( app );
+			savePayment( app );
+		}
+		else {
+			//------- FOR ONLINE TRANSACTIONS --------
+			//save the entities
+			if(app.entities) {
+				app.entities.each {
+		    		if( it.objid != app.applicantid ) {
+						it.appid = app.objid;
+						entityEm.create( it );    		
+		    		}
+				}							
+			};
+
+			if( app.documents) {
+				appDocSvc.saveInitial(  [appid: app.objid, apptype: app.appclass.toLowerCase(), doclist: app.documents]  );
+			} 
+			if(app.professionals) {
+				app.professionals.each {
+					it.appid = app.objid;
+					profSvc.addAppProfessional( it );	
+				}	
+			}
+			reqSvc.saveInitial( [apptype: app.appclass.toLowerCase(), appid: app.objid ] );		
+			
+			//start the workflow
+			def p = [:];
+			p.processname = app.appclass.toLowerCase();
+			p.refid = app.objid;
+			p.startdate = dateSvc.getServerDate();
+			p.info = app;
+			p.assignee = [objid:env.USERID, name:env.FULLNAME];		
+			wfSvc.start(p);			
+		}	
+		return app;
+	}
+
+
+
+}

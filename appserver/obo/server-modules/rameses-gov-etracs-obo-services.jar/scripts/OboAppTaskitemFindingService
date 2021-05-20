@@ -21,21 +21,26 @@ class OboAppTaskitemFindingService {
 	@DataContext("obo_app_taskitem_finding")
 	def findingEm;
 
+	@DataContext("vw_obo_app")
+	def vwAppEm;
+
 	@Env
 	def env;
 
 	@ProxyMethod
 	public def getList( def o ) {
 		if(!o.parentid) throw new Exception("parentid for taskitem is required");
-		def list = findingEm.find( o ).where( " supersederid IS NULL " ).where(" state IN (0,2) AND supersederid IS NULL ").orderBy(  "checklistitem.indexno ASC" ).list();
-        /*
+		def viewType = o.viewType;
+		def filter = [parentid: o.parentid];
+		def w;
+		def parms = [:];
         if( viewType == "open" ) {
-            w1 += " AND state IN (0,2) ";
+            w = " state IN (0,2) AND supersederid IS NULL ";
         }
-        else if( viewType == "applicable") {
-            w1 += " AND state <> 3 ";
+        else if( viewType == "all") {
+            w = " 1=1 ";
         }
-        */     
+		return findingEm.find( filter ).where(w, parms).orderBy(  "checklistitem.indexno ASC, dtcreated DESC" ).list();
 	}
 
 	@ProxyMethod
@@ -68,13 +73,14 @@ class OboAppTaskitemFindingService {
 	@ProxyMethod
 	public def createTransmittal( def o ) {
 		if(!o.appid) throw new Exception("appid is required in OboAppTaskitemFindingService.createTransmittal");
-		if(!o.appname) throw new Exception("Please include appname in OboAppTaskitemFindingService.createTransmittal")
 		if(!o.type) throw new Exception("Please include type in OboAppTaskitemFindingService.createTransmittal")
+
+		def app = vwAppEm.find( [objid: o.appid] ).first();
 
 		boolean hasItems = findingEm.find([appid:o.appid]).where("supersederid IS NULL AND state=2 AND transmittalid IS NULL").exists();
 		if(!hasItems) throw new Exception("There must be at least one finding that needs to be transmitted");			
 	
-		def docid = o.appname.toUpperCase() + "_" + o.type.toUpperCase() + "_TRANSMITTAL";
+		def docid = o.type.toUpperCase() + "_TRANSMITTAL";
 		def doc = doctypeEm.find( [objid: docid] ).first();
 		if(!doc) throw new Exception("doctype " + docid + " not found");
 

@@ -2,8 +2,8 @@ import com.rameses.annotations.*;
 
 class OboAppDocPersistenceInterceptor { 
 
-	@DataContext("obo_app_doc")
-	def appDocEm;
+	@DataContext("vw_obo_app_doc")
+	def vwAppDocEm;
 
 	@DataContext("obo_checklist_master")
 	def chkListEm;
@@ -26,20 +26,18 @@ class OboAppDocPersistenceInterceptor {
 	@After(pattern="PersistenceService.read", eval="#{args[0]._schemaname == 'vw_obo_app_doc' }")
 	public void onRead(def evt) {
 		def a = evt.result;
-		def appname = "vw_" + a.app.apptype;
-		def appEm = db.lookup( appname );
-		a.app = appEm.find( [objid: a.appid ] ).first();
 		a.showchecklist = (chkListEm.find( [doctypeid: a.doctypeid]).select("c:{COUNT(*)}").val() > 0);
 		a.showfees = (itemAcctEm.find( [doctypeid: a.doctypeid]).select("c:{COUNT(*)}").val() > 0 );
 		a.showinfo = (varEm.find( [doctypeid: a.doctypeid]).select("c:{COUNT(*)}").val() > 0 );
 	}
 
+	/*
 	@Before(pattern="PersistenceService.removeEntity", eval="#{ args[0]._schemaname == 'obo_app_doc' }")
 	public void beforeRemoveApplicationSubdoc(def evt) {
 		def app = evt.args[0];
 
-		def subdoc = appDocEm.find( [objid: app.objid]).first();
-		def docorgid = subdoc.doctype?.org?.objid;
+		def subdoc = vwAppDocEm.find( [objid: app.objid]).first();
+		def docorgid = subdoc.doctype?.section?.org?.objid;
 		boolean b = false;
 
 		if( docorgid !=null ) {
@@ -51,6 +49,6 @@ class OboAppDocPersistenceInterceptor {
 		if(!b) 
 			throw new Exception("You cannot remove this document. Only the org associated with this document can remove this");
 	}
-
+	*/
 
 } 

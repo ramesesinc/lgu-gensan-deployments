@@ -9,10 +9,9 @@ class OboDocTypeListInterceptor {
 	public void getNodeList(def evt) {
 		def result = evt.result;
 		
-		def types = docType.select("type").groupBy("type").list()*.type;
-		types.each {
-			result << [title: it ];		
-		}
+		result << [title: "MAIN" ];		
+		result << [title: "REGULAR" ];		
+		result << [title: "REPORT" ];				
 	}
 
 	@Before(pattern="QueryService.getList", eval="#{args[0]._schemaname == 'obo_doctype' }")

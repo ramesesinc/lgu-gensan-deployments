@@ -1,0 +1,45 @@
+import com.rameses.annotations.*;
+import com.rameses.util.*;
+import java.rmi.server.*;
+import obo.facts.*;
+import java.text.*;
+import treasury.utils.*;
+import treasury.facts.*;
+
+class OboAppCloudInitialService {
+	
+	@Service(value="obo/OnlineBuildingPermitDownloadService", connection="cloud-server")
+    def bldgSvc;
+
+	@Service(value="obo/OnlineOccupancyPermitDownloadService", connection="cloud-server")
+    def occupancySvc;
+
+    @DataContext("vw_obo_app")
+    def vwAppEm;
+
+    @Env
+    def env;
+
+    @ProxyMethod
+    public def getApplication( def o  ) {
+    	if( !o.appclass) throw new Exception("appclass is required in OboAppCloudInitialService.getApplication");
+    	if( !o.trackingno ) throw new Exception("trackingno is required in OboAppCloudInitialService.getApplication");
+
+    	//check first if the application already exists
+    	def app = vwAppEm.find( [trackingno: o.trackingno ]).first();
+    	if(app) throw new Exception("Application already exists. It is currently at " + app.task?.state );
+
+    	def cloudSvc;
+    	if( o.appclass== "building_permit") {
+    		cloudSvc = bldgSvc;
+    	}
+    	else {
+    		cloudSvc = occupancySvc;
+    	}
+
+		return cloudSvc.getDownloadInfo( [appid: o.trackingno, orgcode: env.ORGID ] );
+    }
+
+	
+
+}

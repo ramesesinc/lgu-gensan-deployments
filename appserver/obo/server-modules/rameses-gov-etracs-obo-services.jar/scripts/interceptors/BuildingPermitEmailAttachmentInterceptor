@@ -21,18 +21,16 @@ class BuildingPermitEmailAttachmentInterceptor {
 	public void beforeSendEmailQueue( def evt ) {
 		def p = evt.args[0];
 
-		if(!p.to) {
-			def mainApp = vwAppEm.find([objid: p.refid ]).first();
-			p.to = mainApp.contact.email;
-		}	
+		def mainApp = vwAppEm.find([objid: p.refid ]).first();
+
+		if(!p.to) p.to = mainApp.contact.email;
 
 		def app = vwSubdocEm.find( [appid: p.refid ] ).where("doctype.objid = 'BUILDING_PERMIT' ").first();
 		if(!app)
 			throw new Exception("Building Permit Document not found");
 
-		p.info = [doctype:app.doctype.title, controlno: app.controlno];
+		p.info = mainApp;
 		p.connection = "obo-email-server";
-		if(!p.to) p.to = app.contact.email;
 	}
 
     @Before(pattern="JasperReportEmailService.send", eval="#{ args[0].reportid == 'building_permit_email_attachment' }", index=-10000)
@@ -51,7 +49,6 @@ class BuildingPermitEmailAttachmentInterceptor {
 			o.attachments << z; 
 		}
 
-		/*
 		def rpus = rpuEm.find([appid: o.refid ]).select( "tdno,taxclearanceid,truecopycertid" ).list();
  		rpus.each {
         	try {
@@ -68,10 +65,9 @@ class BuildingPermitEmailAttachmentInterceptor {
         		println "error generating rpt reports for email. " + ignErr.getMessage();
         	}
         } 
-        */
 
         //construction signage printout
-		//o.attachments <<[ reportid: "building_permit_signage", parameters: [objid:o.refid], title: "ConstructionSignage.pdf" ] 
+		o.attachments <<[ reportid: "building_permit_signage", parameters: [objid:o.refid], title: "ConstructionSignage.pdf" ] 
 
     } 
 

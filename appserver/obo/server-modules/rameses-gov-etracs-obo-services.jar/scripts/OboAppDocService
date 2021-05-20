@@ -9,6 +9,9 @@ public class OboAppDocService  {
 	@Service("OboControlService")
 	def controlSvc;
 
+	@Service("ControlnoGeneratorService")
+	def controlnoGenSvc;
+
 	@DataContext("vw_obo_app_taskitem")
 	def vwTaskItemEm;
 
@@ -23,6 +26,13 @@ public class OboAppDocService  {
 
 	@DataContext("obo_app_doc_info")
 	def appInfoEm;
+
+	@Service("DateService")
+	def dateSvc;
+
+
+	@Env
+	def env;
 
     //this is created during saving of the application
     //loop all documents sent in doclist. Then fire the documents that ate 
@@ -73,6 +83,56 @@ public class OboAppDocService  {
 		}
 	}
 
+	@ProxyMethod
+	public def issueControlno( def o ) {
+		def doc = null;
+		if(o.objid) {
+			doc = vwDocEm.find( [objid: o.objid ]).first();	
+		}
+		else if(o.appid && o.doctypeid) {
+			doc = vwDocEm.find( [appid: o.appid, doctypeid: o.doctypeid ]).first();	
+		}
+
+		if(!doc) throw new Exception("objid or appid/doctypeid is required in OboAppDocService.issueControlno");
+		if(doc.doctype.issuetype == 0) throw new Exception("The document type " + o.doctypeid + " is not issuable. Please change issuetype");
+		if(doc.doctype.issuetype == 1) {
+			def pattern = doc.doctype.controlnopattern;
+			if(!pattern) throw new Exception("Please specify controlnopattern for " + doc.doctype.objid );
+			if(pattern.contains("[parentno]")) {
+				if(!o.parentcontrolno) throw new Exception("parentcontrolno is required in pattern");
+				pattern = pattern.replace("[parentno]", o.parentcontrolno );
+			};
+			doc.controlno = controlnoGenSvc.getNextNo( pattern );
+			doc.issuedby = [objid: env.USERID, name: env.FULLNAME];
+			doc.dtissued = dateSvc.getServerDate();
+			controlSvc.saveControl( doc );
+		}
+		else {
+			if(!o.controlno) throw new Exception("controlno is required in issueControlno");
+			doc.controlno = o.controlno;
+			doc.issuedby = [objid: env.USERID, name: env.FULLNAME];
+			doc.dtissued = dateSvc.getServerDate();
+			doc.expirydate = o.expirydate;			
+			controlSvc.saveControl( doc );			
+		}
+		def reflist = vwDocEm.find( [appid: doc.appid ] ).where(  "controlid IS NULL AND doctype.refdoc = :doctype AND doctype.issuetype > 0 ", [doctype: doc.doctypeid ] ).list();
+		def unissuedList = reflist.findAll{ it.doctype.issuetype == 2 };
+		if( unissuedList ) {
+			throw new Exception("Please issue manually the ff. documents " + unissuedList*.doctype.title.join("\n"));
+		}
+		reflist.findAll{it.doctype.issuetype == 1}.each {
+			issueControlno( [objid: it.objid, parentcontrolno: doc.controlno ] );
+		}
+		//notify if there is no 
+		if( !o.parentcontrolno ) {
+			def notList = [];
+			notList << "obo";
+			notList << "obo_app_doc:" + doc.doctype.objid.toLowerCase();
+			notificationSvc.notify( notList );			
+		}
+		return doc;
+	}	
+
 
 	@ProxyMethod
 	public def issueDocControlno( def o ) {
@@ -83,13 +143,14 @@ public class OboAppDocService  {
 		}
 
 		//fire all other documents next
-		vwDocEm.find( [appid: o.appid ]).where( "controlid IS NULL AND doctype.issuetype = 1 " ).select("objid").list().each {
+		vwDocEm.find( [appid: o.appid ]).where( "controlid IS NULL AND doctype.issuetype = 1 AND doctype.type ='REGULAR' " ).select("objid").list().each {
 			controlSvc.autoIssue( [objid: it.objid ] );
 		}
+		
 
 		//notify those docs that are manually issued
 		def notList = [];
-		vwDocEm.find( [appid: o.appid ]).where( "controlid IS NULL AND doctype.issuetype = 2 " ).list().each {
+		vwDocEm.find( [appid: o.appid ]).where( "controlid IS NULL AND doctype.issuetype = 2 AND doctype.type = 'MAIN' " ).list().each {
 			notList << 	"obo_app_doc:" + it.doctype.objid.toLowerCase();
 		}
 

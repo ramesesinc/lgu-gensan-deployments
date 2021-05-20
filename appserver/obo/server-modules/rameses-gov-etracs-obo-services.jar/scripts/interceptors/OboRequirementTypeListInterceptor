@@ -6,7 +6,7 @@ class OboRequirementTypeListInterceptor {
 	public void getNodeList(def evt) {
 		def result = evt.result;
 		result << [title: "Building Permit", type: "building_permit" ];		
-		result << [title: "Occupancy Permit", type: "occupancy_permit"];	
+		result << [title: "Occupancy Certificate", type: "occupancy_certificate"];	
 	}
 
 	@Before(pattern="QueryService.getList", eval="#{args[0]._schemaname == 'obo_requirement_type' }")

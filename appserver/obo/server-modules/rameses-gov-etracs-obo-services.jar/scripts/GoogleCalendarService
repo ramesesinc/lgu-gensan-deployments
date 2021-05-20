@@ -1,0 +1,52 @@
+import com.rameses.annotations.*;
+import java.rmi.server.*;
+import com.rameses.util.*;
+import com.rameses.http.*;
+import com.rameses.osiris3.server.*;
+
+class GoogleCalendarService {
+	
+    //@XConnection("calendar-server")
+    //def calendar;
+
+    @ProxyMethod
+    public void send( def o ) {
+        if(!o.emails) throw new Exception("Please specify emails in GoogleCalendarService.send");
+        if(!o.msg) throw new Exception("Please specify msg in GoogleCalendarService.send");
+        if(!o.startdate) throw new Exception("Please specify startdate in GoogleCalendarService.send");
+        if(!o.enddate) throw new Exception("Please specify enddate in GoogleCalendarService.send");
+        if(!o.subject) throw new Exception("Please specify subject in GoogleCalendarService.send");
+
+        def v = [:];
+        v.summary = o.subject;
+        v.description = o.msg;
+        v.start = [
+            dateTime: o.startdate,
+            timeZone: "Asia/Manila"
+        ];
+        v.end = [
+            dateTime: o.enddate,
+            timeZone: "Asia/Manila"
+        ];
+        v.recurrence = ["RRULE:FREQ=DAILY;COUNT=1"];
+        v.attendees = o.emails.collect{ [email: it ] };
+        v.reminders = [
+            useDefault: false,
+            overrides: [
+                [method: "email", minutes: 1440],
+                [method: "popup", minutes: 10],             
+            ]
+        ];
+
+        def json = new JSON();
+        def data = json.encode( v );
+
+        throw new Exception("JSON is " + data);
+
+        def httpClient = new HttpClient(conf.host);
+        httpClient.contentType = "application/json";
+        //httpClient.debug = true;
+        httpClient.post("calendar/event/insert", data );
+    }
+
+}

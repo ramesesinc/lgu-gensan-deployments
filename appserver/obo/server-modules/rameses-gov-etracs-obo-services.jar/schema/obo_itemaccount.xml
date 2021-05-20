@@ -13,10 +13,9 @@
 			<key field="doctypeid" target="objid" />		
 		</complex>	
 
-		<!-- deprecated fields -->		
-		<field name="groupid" />
-		<field name="feegroup" />
-		<field name="tag" />
-
+		<complex name="feegroup" ref="obo_feegroup" jointype="many-to-one" required="false">
+			<key field="feegroupid"  target="objid"/>
+		</complex> 		
+		
 	</element>
 </schema>	

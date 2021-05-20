@@ -8,9 +8,6 @@ class OboAppTransmittalFormReportInterceptor {
 	@DataContext("obo_doctype")
 	def doctypeEm;
 
-	@DataContext(dynamic=true)
-	def db;
-
 	@DataContext("obo_app_transmittal")
 	def transmittalEm;
 
@@ -68,20 +65,17 @@ class OboAppTransmittalFormReportInterceptor {
 				it.section = [type: [title: it.parent.type.title ]];
 			}	
 		}
-		def templateName = (t.app.apptype + "_" + t.type + "_TRANSMITTAL").toUpperCase();;
-		
-		def doctype = doctypeEm.find( [objid: templateName ] ).first();
-		if(!doctype) throw new Exception("document type " + templateName + " not found");
 
-		def appName = "vw_" + t.app.apptype;
+		def doctypeid = (t.type.replace("-","_") + "_TRANSMITTAL").toUpperCase();;
+		def doctype = doctypeEm.find( [objid: doctypeid ] ).first();
+		if(!doctype) throw new Exception("document type " + doctypeid + " not found");
 
-		def appEm = db.lookup( appName );
-		def ea = appEm.find( [objid: t.appid ] ).first();
+		def ea = t.app;
 		ea.dtfiled = t.dtcreated;
 		ea.receiver = t.createdby;
 		ea.transmittalno = t.objid;
 		ea.transmittaltype = t.type;
-		ea.permittype = doctype.title;
+		ea.permittype = t.app.doctitle;
 		ea.items = items;
 		ea.endorserid = (t.endorserid) ? t.endorserid : doctype.endorserid;
 		ea.approverid = (t.approverid) ? t.approverid : doctype.approverid;
@@ -98,27 +92,13 @@ class OboAppTransmittalFormReportInterceptor {
 		result.data = ea;
 	}	
 
-	@Before(pattern="JasperEmailQueueService.send", eval="#{args[0].reportid == 'obo_app_transmittal' }")
-	public void beforeSendEmail( def evt ) {
-		def p = evt.args[0];
-
-		def t = transmittalEm.find([objid: p.refid ]).first();
-		def appName = "vw_" + t.app.apptype;
-
-		def appEm = db.lookup(appName);
-		def ea = appEm.find( [objid: t.appid ] ).first();
-
-		def templateName = (t.app.apptype + "_" + t.type + "_transmittal").toLowerCase();
-		if ( !p.to ) p.to = ea.contact.email;
-		p.info = ea;
-		p.reportid = templateName;
-	}
-
 	//we should use matches in this case bec. the reportid was required
   	@Before(pattern="JasperReportEmailService.send", eval="#{ args[0].reportid.matches('.*_transmittal') }", index=-10000)
     public void emailTransmittal(def evt) {
         def o = evt.args[0];
         def refid = o.refid;
+
+        //the report id here must be changed and will not use the <type>_transmittal pattern
         o.attachments = [
             [ title: "Transmittal.pdf", 
                 reportid: "obo_app_transmittal", 
@@ -130,6 +110,19 @@ class OboAppTransmittalFormReportInterceptor {
         o.message = o.message;
         o.connection = "obo-email-server";
     }  
+
+	@Before(pattern="JasperEmailQueueService.send", eval="#{args[0].reportid == 'obo_app_transmittal' }")
+	public void beforeSendEmail( def evt ) {
+		def p = evt.args[0];
+
+		def t = transmittalEm.find([objid: p.refid ]).first();
+		def ea = t.app;
+		def templateName = (t.type + "_transmittal").toLowerCase();
+		if ( !p.to ) p.to = ea.contact.email;
+		p.info = ea;
+		p.reportid = templateName;
+	}
+
 
 
 }

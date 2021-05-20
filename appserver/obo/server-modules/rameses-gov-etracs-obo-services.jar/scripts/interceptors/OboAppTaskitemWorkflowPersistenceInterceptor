@@ -23,17 +23,25 @@ class OboAppTaskitemWorkflowPersistenceInterceptor {
 	@After( pattern="WorkflowTaskService.(signal|start|findTask)", eval="#{ args[0].processname == 'obo_app_taskitem' }" )
 	public void customizeRole(  def evt ) {
 		def r = evt.result;
+
+		//we have to add domain to make security applicable
+		r.domain = "OBO"; 
+
 		//get the corrected roles for this
 		def typeid = vwTaskAppTaskitemEm.find( [objid: r.refid ] ).select("typeid").val();
-		def replaceRole = {state, itm->
-			def rol = taskitemTypeRole.find( [typeid: typeid, state: state ] ).first();
-			if(rol) itm.role = rol.role;	
+		def typeRoles = taskitemTypeRole.find([typeid: typeid]).list();
+		r.allowedstates = typeRoles*.state;
+
+		def replaceRole = { state, itm->
+			def rol = typeRoles.find{ it.state == state };
+			if(rol) itm.role = rol.role;
 		}
-		replaceRole( r.state, r );
-		r.transitions.each { tran ->
+		r.transitions.each { tran->
 			replaceRole( tran.to,  tran );
 		}
+		replaceRole( r.state, r ); //replace also the role for this state
 		env._notificationList = [ "obo_app_taskitem:" + typeid.toLowerCase() ];
+
 	}
 
 	@After( pattern="WorkflowTaskService.assignToMe", eval="#{ args[0].processname == 'obo_app_taskitem' }" )
@@ -48,7 +56,7 @@ class OboAppTaskitemWorkflowPersistenceInterceptor {
 	@After( pattern="PersistenceService.read", eval="#{ args[0]._schemaname == 'vw_obo_app_taskitem' }" )
 	public void afterOpenTaskitem(  def evt ) {
 		def r = evt.result;
-		def appEm =  db.lookup( "vw_" +  r.app.apptype );
+		def appEm =  db.lookup( r.app.schemaname );
 		def app = appEm.find( [objid: r.appid ] ).first();
 		app.putAll( r.app );
 		r.app = app;

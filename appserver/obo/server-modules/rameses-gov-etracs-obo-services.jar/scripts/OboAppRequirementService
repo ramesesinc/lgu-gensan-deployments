@@ -24,6 +24,9 @@ class OboAppRequirementService {
 	@DataContext("obo_requirement_type")
 	def reqTypeEm;
 
+	@DataContext("vw_obo_app")
+	def appEm;
+
 	@Env
 	def env;
 
@@ -74,13 +77,13 @@ class OboAppRequirementService {
 	@ProxyMethod
 	public def createTransmittal( def o ) {
 		if(!o.appid) throw new Exception("appid is required in OboAppRequirementService.createTransmittal");
-		if(!o.appname) throw new Exception("Please include appname in OboAppRequirementService.createTransmittal")
 
+		def app = appEm.find( [objid: o.appid ]).first();
 
 		def hasItems = reqEm.find([appid: o.appid]).where("supersederid IS NULL AND state=2 AND transmittalid IS NULL").exists();
 		if(!hasItems) throw new Exception("There are no open items found to transmit");
 
-		def docid = o.appname.toUpperCase() + "_REQUIREMENT_TRANSMITTAL";
+		def docid = "REQUIREMENT_TRANSMITTAL";
 
 		def doc = doctype.find( [objid: docid] ).first();
 		if(!doc) throw new Exception("doctype " + docid + " not found");

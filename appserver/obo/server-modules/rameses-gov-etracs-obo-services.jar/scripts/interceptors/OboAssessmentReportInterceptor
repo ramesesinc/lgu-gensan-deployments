@@ -2,9 +2,6 @@ import com.rameses.annotations.*;
 
 class OboAssessmentReportInterceptor {
 	
-	@DataContext(dynamic=true)
-	def dynEm;
-
 	@Service("DateService")
 	def dateSvc;
 
@@ -27,7 +24,28 @@ class OboAssessmentReportInterceptor {
 
 		data.permittype =  data.doctitle ;
 
-		data.items = feeEm.find([appid: objid]).select("objid,item.title,section:{'OBO'},amount").list();
+		def fitems = feeEm.find([appid: objid]).list();
+		def unmappedList = fitems.findAll{ !it.item?.objid };
+		if(unmappedList) {
+			throw new Exception("Please map the ff. items first /n" + unmappedList*.title.join("/n") );
+		}
+
+		//group by fee group
+		def vitems = [];
+		fitems.groupBy{ it.item.item }.each {k,v->
+			def feegroup = v.find{ it.item.feegroupid!=null }.item.feegroup;
+			def m = [ 
+				item: k, 
+				section: feegroup?.title,
+				grouporder: feegroup?.sortindex,
+				sortorder: v.max{ it.item.sortorder }.item.sortorder, 
+				amount: v.sum{it.amount} 
+			];
+			vitems << m;
+		};
+
+		data.items = vitems.sort{ ( (it.grouporder==null?0:it.grouporder) * 1000 )+ (it.sortorder==null? 0: it.sortorder) };
+
 		data.dtfiled = dateSvc.getServerDate();
 		result.data = data;
 	}	

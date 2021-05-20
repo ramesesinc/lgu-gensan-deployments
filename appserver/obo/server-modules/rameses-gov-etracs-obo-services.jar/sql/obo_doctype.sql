@@ -7,7 +7,7 @@ SELECT a.* FROM
 	FROM obo_doctype od
 	LEFT JOIN obo_section os ON od.sectionid = os.objid 
 	WHERE od.issuetype = 2 
-	AND od.refdoc IS NULL
+	AND od.type = 'MAIN'
 	AND od.role in (${roles})
 ) a
 WHERE a.orgid = $P{orgid}

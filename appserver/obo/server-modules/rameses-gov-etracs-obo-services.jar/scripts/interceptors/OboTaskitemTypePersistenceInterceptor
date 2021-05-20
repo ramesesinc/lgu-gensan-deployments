@@ -1,0 +1,24 @@
+import com.rameses.annotations.*;
+
+class OboTaskitemTypePersistenceInterceptor {
+	
+	@Before( pattern="PersistenceService.(update|create)", eval="#{ args[0]._schemaname == 'obo_taskitem_type' }" )
+	public void beforeUpdate(  def evt ) {
+		def r = evt.args[0];
+		//check if the role has evaluation, review and aproval
+		def re =  r.customroles.find{ it.state == 'evaluation' };
+		if(!re) throw new Exception("Please assign a role in the evaluation state")
+
+		/*
+		r.each { k,v->
+			println k;
+		}
+		r.customroles.each {
+			println it;
+		}
+		throw new Exception("Updating taskitekm type ");
+		*/
+	}
+
+
+}

@@ -5,8 +5,8 @@ class BuildingPermitSignageReportInterceptor {
 	@DataContext("vw_building_permit")
 	def permitEm;
 
-	@DataContext("vw_obo_app_doc")
-	def vwSubdocEm;
+	@DataContext("obo_app_professional")
+	def profEm;
 
 	def findPermit( def id ) {
 		//building permit can be loaded using appid or objid(building permit)
@@ -25,19 +25,27 @@ class BuildingPermitSignageReportInterceptor {
 		def id = p.parameters.objid;
 
 		def permit = findPermit( id );
-
 		permit.name = permit.applicant?.lastname + ", " + permit.applicant?.firstname;
 
-		def subDocs = vwSubdocEm.find([appid: permit.objid ]).where("doctype.type='ANCILLARY' AND NOT(controlid IS NULL)").orderBy("doctype.sortorder ASC").list();
+		def profs = profEm.find( [appid: id ]).select("section.*,designprofessional.*").where("NOT(sectionid IS NULL)").list();
 
-		permit.profarchitect =	subDocs.find{ it.doctypeid.toLowerCase() == 'architectural' }?.designprofessional;	 
-		permit.profcivil = subDocs.find{ it.doctypeid.toLowerCase() == 'civil_structural' }?.designprofessional;
-		permit.profelectrical = subDocs.find{ it.doctypeid.toLowerCase() == 'electrical' }?.designprofessional;
-		permit.profelectrical = subDocs.find{ it.doctypeid.toLowerCase() == 'electrical' }?.designprofessional;
-		permit.profmechanical =  subDocs.find{ it.doctypeid.toLowerCase() == 'mechanical' }?.designprofessional;
-		permit.profsanitary = subDocs.find{ it.doctypeid.toLowerCase() == 'sanitary' }?.designprofessional;
-		permit.profplumbing = subDocs.find{ it.doctypeid.toLowerCase() == 'plumbing' }?.designprofessional;
-		permit.profelectronic = subDocs.find{ it.doctypeid.toLowerCase() == 'electronic' }?.designprofessional;
+		//correct the name and prcno
+		profs.each {
+			def m = [:];
+			m.name = it.designprofessional.name;
+			m.lastname = it.designprofessional.lastname;
+			m.firstname = it.designprofessional.firstname;
+			m.prc = it.designprofessional.prc;
+
+			def sectionid = it.sectionid.toLowerCase();
+			if(sectionid == "architectural") permit.architect = m;
+			else if(sectionid == "civil_structural") permit.civil = m;
+			else if(sectionid == "electrical") permit.electrical = m;
+			else if(sectionid == "mechanical") permit.mechanical = m;
+			else if(sectionid == "sanitary") permit.sanitary = m;
+			else if(sectionid == "plumbing") permit.plumbing = m;
+			else if(sectionid == "electronic") permit.electronic = m;			
+		}
 
 		permit.template = "reports/obo/building_permit_signage";
 		result.data = permit;

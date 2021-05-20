@@ -52,6 +52,9 @@ public class BuildingPermitRpuService  {
 	@DataContext("obo_doctype")
 	def docTypeEm;
 
+	@DataContext("obo_payment")
+	def paymentEm;
+
 	@ProxyMethod
 	public void generateDocs( def o ) {
 		def app, list;
@@ -113,24 +116,17 @@ public class BuildingPermitRpuService  {
 	@ProxyMethod
 	public void assessFees( def o ) {
 		if(!o.appid) throw new Exception("appid is required in assess fees");
+		
 		//search if there is the RPT_DOCUMENT if not create it.
-
-		def rptList = rpuEm.find( [appid: o.appid ] ).list();
-
-		def r = [:];	
-		r.totalcount = rptList.size();
-		r.byownercount = rptList.groupBy{ it.ownerid }.size();
-
 		def doc = appDocSvc.findDoc( [appid:o.appid, doctypeid:'BUILDING_RPT', create_if_not_exist: true] );
 
 		def factBuilder = new FactBuilder();
-		factBuilder.facts << new RpuCount( r );
-		rptList.each {
-			factBuilder.facts << new RpuEntry( [ownerid: it.ownerid] );
-		}	
-		appFeeSvc.assessFacts( [factBuilder: factBuilder, parentid: doc.objid, appid: o.appid, savefees: true ] );
-	}
+		appFeeSvc.assess( [factBuilder: factBuilder, parentid: doc.objid, savefees: true ] );
 
+		factBuilder.facts.findAll{ it instanceof RpuEntry }.each {
+			rpuEm.find( [objid: it.objid] ).update( [taxclearancefee: it.taxclearancefee, truecopycertfee: it.truecopycertfee ] );	
+		}
+	}
 
  	@ProxyMethod
     public def findRpu( def params ) {
@@ -181,22 +177,46 @@ public class BuildingPermitRpuService  {
     @ProxyMethod
     public void validateRptDocs(def o) {
 		if(!o.appid) throw new Exception("Please include appid in BuildingPermitRpuService.validateRptDocs");
-    	def exists = rpuEm.find( [appid: o.appid ]).where("truecopycertid IS NULL OR taxclearanceid IS NULL").exists();
+    	def exists = rpuEm.find( [appid: o.appid ]).where("(truecopycertid IS NULL OR taxclearanceid IS NULL)").exists();
     	if(exists)
     		throw new Exception("Please generate the RPT Documents first before proceeding");
     }
 
     //This is called by the obo.actions.AddBuildingRpuInfo for the rules
     @ProxyMethod
-    public def getRpuCount(def o) {
+    public def getRpuFacts(def o) {
 		if(!o.appid) throw new Exception("Please include appid in BuildingPermitRpuService.validateRptDocs");
-		def rpu = [:];
-        rpu.byownercount = rpuEm.find( [appid: o.appid ] ).select("c:{COUNT( DISTINCT ownerid )}").val();
-		rpu.totalcount = rpuEm.find( [appid: o.appid ] ).select("c:{COUNT(*)}").val();
-		return rpu;
+		def rptList = rpuEm.find( [appid: o.appid ] ).list();
+		def r = [:];	
+		r.totalcount = rptList.size();
+		r.byownercount = rptList.groupBy{ it.ownerid }.size();
+
+		def facts = [];
+		facts << new RpuCount( r );
+		rptList.each {
+			facts << new RpuEntry( [objid: it.objid, ownerid: it.ownerid] );
+		}	
+		return facts;
     }
 
+    @ProxyMethod
+    public void postPayment( def o ) {
+    	if(!o.appid) throw new Exception("Please include appid in BuildingPermitRpuService.validateRptDocs");
+    	//find the payment made
 
+		def pmt = paymentEm.find( [appid: o.appid ]).first();
+		def refno = pmt.refno;
+		def refdate = pmt.refdate;
+
+		def rpuList = rpuEm.find( [appid: o.appid ] ).list();
+		rpuList.each {
+			if(it.taxclearanceid && it.taxclearancefee) 
+				rptSvc.postPayment( [objid:it.taxclearanceid, orno:refno, ordate:refdate, oramount:it.taxclearancefee ] );		
+			if(it.truecopycertid && it.truecopycertfee) 
+				rptSvc.postPayment( [objid:it.truecopycertid, orno:refno, ordate:refdate, oramount:it.truecopycertfee ] );		
+		}
+
+    }
 
 
 

@@ -1,12 +1,11 @@
 <schema>
 	<element tablename="vw_obo_app">
 		<field name="objid" primary="true"/>
-		<field name="apptype" />
+		<field name="appclass" />
 		<field name="appno" indexed="true" searchable="true" caption="App No"/>
 		<field name="trackingno" indexed="true" searchable="true" caption="Tracking No"/>
 		<field name="title" indexed="true" searchable="true" caption="Project Title"/>
 		<field name="applicant_name" indexed="true" searchable="true" caption="Applicant Name"/>
-
 		<field name="applicant_address_text"/>
 		<field name="applicant_profileid" />
 
@@ -16,8 +15,22 @@
 		<field name="task_assignee_objid" />
 
 		<field name="doctitle" />
+		<field name="schemaname" />
+		<field name="contact_name" />		
+		<field name="contact_detail" />				
 		<field name="contact_email" />
-		<field name="contact_mobileno" />		
+		<field name="contact_mobileno" />
+		<field name="apptype" />		
+		<field name="txntype" />
+
+		<field name="orgcode" />
+		<field name="doctypeid" required="true" />		
+		<field name="appdate" type="date"/>
+		<field name="applicantid"/>
+		<field name="createdby_objid" />
+		<field name="createdby_name" />
+		<field name="dtcreated" type="timestamp"/>	
+
 	</element>
 </schema>
 

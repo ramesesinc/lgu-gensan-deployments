@@ -51,6 +51,7 @@ class OboControlService {
 		return u;
 	}
 
+
 	@ProxyMethod
 	public def autoIssue( def p ) {
 		if(!p.objid) throw new Exception("objid is required in OboControlService.autoIssue");
@@ -65,6 +66,7 @@ class OboControlService {
 			if(!doctype.refdoc) throw new Exception("[parentno] pattern for " + doctype.title + " requires refdoc to be specified" );
 			def refdoc = doctype.refdoc;
 			def parentDoc = vwDocEm.find( [appid: doc.appid ] ).where("doctype.objid = :doctypeid", [doctypeid: refdoc] ).first();
+			if(!parentDoc) return null;
 			doc.controlno = pattern.replace("[parentno]", parentDoc.controlno );
 		}
 		else {
@@ -94,7 +96,7 @@ class OboControlService {
 		}
 
 		doc.issuedby = [ objid: env.USERID, name: env.FULLNAME ];
-		doc.dtissued = pt.dtissued;
+		doc.dtissued = p.dtissued;
 		doc.controlno = p.controlno;
 		doc.expirydate = p.expirydate;
 		def c = saveControl( doc );

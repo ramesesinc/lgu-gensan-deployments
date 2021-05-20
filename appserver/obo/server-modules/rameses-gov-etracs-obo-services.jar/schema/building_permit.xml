@@ -1,24 +1,9 @@
 <schema>
-	<element tablename="building_permit">
+	<element tablename="building_permit" extends="obo_app">
 		<field name="objid" primary="true" prefix="OBOBP" visible="true"/>
-		<field name="orgcode" />
-		<field name="appno" searchable="true" indexed="true"/>
-		<field name="apptype" required="true"/>
-		<field name="appdate" type="date"/>
-
-		<field name="trackingno" searchable="true" indexed="true"/>
 		<field name="taskid" />
-		<field name="txnmode" />
 
 		<!-- VALUES ARE SIMPLE OR COMPLEX -->
-		<field name="txntype" />
-
-		<field name="contact_name" />
-		<field name="contact_detail" />
-		<field name="contact_email" />
-		<field name="contact_mobileno"/>
-
-		<field name="applicantid"/>
 		<field name="title" />
 		<field name="description" />
 		<field name="occupancytypeid" required="true"/>
@@ -50,10 +35,6 @@
 
 		<complex name="worktypes" type="list" serializer="default" required="false"/>
 		<field name="supervisorid" />
-
-		<field name="createdby_objid" />
-		<field name="createdby_name" />
-		<field name="dtcreated" type="timestamp"/>
 
 		<field name="amount" type="decimal"/>
 	</element>

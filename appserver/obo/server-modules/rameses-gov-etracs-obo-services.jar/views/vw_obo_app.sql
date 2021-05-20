@@ -2,10 +2,8 @@ DROP VIEW IF EXISTS vw_obo_app;
 CREATE VIEW vw_obo_app AS 
 
 SELECT 
-   bp.objid, 
-   'building_permit' AS apptype,    
-   bp.appno AS appno,
-   bp.trackingno,
+   app.*, 
+   'building_permit' AS appclass,    
    bp.title AS title,
    
    LTRIM(CONCAT(
@@ -28,21 +26,19 @@ SELECT
    bt.assignee_objid AS task_assignee_objid,
    'building_permit' AS processname,
    'BUILDING PERMIT' AS doctitle,
-   bp.contact_email AS contact_email,
-   bp.contact_mobileno AS contact_mobileno
-FROM building_permit bp 
-INNER JOIN obo_app_entity be ON bp.applicantid = be.objid 
+   'vw_building_permit' AS schemaname
+
+FROM obo_app app
+INNER JOIN building_permit bp ON app.objid = bp.objid
+INNER JOIN obo_app_entity be ON app.applicantid = be.objid 
 INNER JOIN building_permit_task bt ON bp.taskid = bt.taskid 
 
-UNION
+UNION 
 
 SELECT 
-   op.objid, 
-   'occupancy_permit' AS apptype,    
-   op.appno AS appno,
-   op.trackingno,
+   app.*, 
+   'occupancy_certificate' AS appclass,    
    bp.title AS title,
-
    LTRIM(CONCAT(
       (CASE WHEN bp.location_unitno IS NULL THEN '' ELSE CONCAT(' ', bp.location_unitno) END),
       (CASE WHEN bp.location_bldgno IS NULL THEN '' ELSE CONCAT(' ', bp.location_bldgno) END),
@@ -54,17 +50,18 @@ SELECT
       (CASE WHEN bp.location_barangay_name IS NULL THEN '' ELSE CONCAT(', ', bp.location_barangay_name ) END)
    )) AS location_text,
 
-   oe.name AS applicant_name,
-   oe.address_text AS applicant_address_text,
-   oe.profileid AS applicant_profileid,
+   be.name AS applicant_name,
+   be.address_text AS applicant_address_text,
+   be.profileid AS applicant_profileid,
 
-   ot.state AS task_state, 
-   ot.assignee_objid AS task_assignee_objid,
-   'occupancy_permit' AS processname,
+   bt.state AS task_state, 
+   bt.assignee_objid AS task_assignee_objid,
+   'occupancy_certificate' AS processname,
    'OCCUPANCY CERTIFICATE' AS doctitle,
-   bp.contact_email AS contact_email,
-   bp.contact_mobileno AS contact_mobileno    
-FROM occupancy_permit op
-INNER JOIN building_permit bp ON op.bldgpermitid = bp.objid 
-INNER JOIN obo_app_entity oe ON op.applicantid = oe.objid 
-INNER JOIN occupancy_permit_task ot ON op.taskid = ot.taskid 
+   'vw_occupancy_certificate' AS schemaname
+   
+FROM obo_app app
+INNER JOIN occupancy_certificate oc ON oc.objid = app.objid 
+INNER JOIN building_permit bp ON oc.bldgpermitid = bp.objid
+INNER JOIN obo_app_entity be ON app.applicantid = be.objid 
+INNER JOIN occupancy_certificate_task bt ON oc.taskid = bt.taskid 

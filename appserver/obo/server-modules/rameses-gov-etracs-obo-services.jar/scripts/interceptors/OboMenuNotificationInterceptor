@@ -11,9 +11,6 @@ class OboMenuNotificationInterceptor {
 	@ActiveDB("obo_taskitem_type")
 	def taskitemType;
 
-	@DataContext("occupancy_permit")
-	def occPermitEm;
-
 	@DataContext("obo_app_doc")
 	def appDocEm;
 
@@ -52,7 +49,7 @@ class OboMenuNotificationInterceptor {
 	 	if( g ) cnt += g.sum{ it.count };
 
 	 	//Occupancy Permit
-		g = wfEm.getTaskCount( [processname: "occupancy_permit", roles:roleStr, userid: env.USERID ] );
+		g = wfEm.getTaskCount( [processname: "occupancy_certificate", roles:roleStr, userid: env.USERID ] );
 		if( g ) cnt += g.sum{ it.count };
 
 		g = appDocEm.findAllDocsToReleaseCount( [roles: roleStr,orgid: orgid] );
@@ -96,14 +93,14 @@ class OboMenuNotificationInterceptor {
 		result.count = cnt;
 	}	
 
-	@After(pattern="MenuNotificationService.getCount", eval="#{ args[0].notificationid == 'occupancy_permit' }")
+	@After(pattern="MenuNotificationService.getCount", eval="#{ args[0].notificationid == 'occupancy_certificate' }")
 	public void getOccupancyApplicationTaskCount( def evt ) {
 		def p = evt.args[0];
 		def result = evt.result;
 		def nid = p.notificationid;
 		def roleStr = userRole.getRolesString( [:] );
 		result.count = 0;
-		def g = wfEm.getTaskCount( [processname: "occupancy_permit", roles:roleStr, userid: env.USERID  ] );
+		def g = wfEm.getTaskCount( [processname: "occupancy_certificate", roles:roleStr, userid: env.USERID  ] );
 		if( g ) result.count = g.sum{ it.count };
 	}	
 	

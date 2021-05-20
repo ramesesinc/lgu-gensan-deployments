@@ -1,0 +1,105 @@
+import com.rameses.annotations.*;
+import java.rmi.server.*;
+
+class OccupancyCertificatePersistenceInterceptor {
+	
+	@Service("OboAppRequirementService")
+	def reqSvc;
+
+	@Service("OboAppProfessionalService")
+	def profSvc;
+
+	@Service("OboAppDocService")
+	def appDocSvc;
+
+
+	@Service("OboConstructionCostRuleService")
+	def costSvc;
+
+	@DataContext("occupancy_certificate")
+	def appEm;
+
+	@DataContext("occupancy_certificate_task")
+	def appTaskEm;
+
+
+	@DataContext("vw_occupancy_certificate")
+	def vwAppEm;
+
+	@DataContext("obo_app_entity")
+	def entityEm;
+
+	@DataContext("obo_payment")
+	def paymentEm;
+
+	@DataContext("obo_app_fee")
+	def feeEm;
+
+	@Env
+	def env;
+
+	private def calcFixedCost( def app ) {
+		if( app.apptype == null || app.actualtotalfloorarea==null || app.occupancytype==null ) {
+			def zapp = vwAppEm.find( [objid: app.objid ] ).select("apptype,actualtotalfloorarea,occupancytype.*").first();
+			if(app.apptype==null) app.apptype = zapp.apptype;
+			if(app.actualtotalfloorarea==null) app.actualtotalfloorarea = zapp.actualtotalfloorarea;
+			if(app.occupancytype==null) app.occupancytype = zapp.occupancytype;
+		}
+		//calculate the cost first before receiving		
+		def param = [:];
+		param.app = [apptype:app.apptype, totalfloorarea:app.actualtotalfloorarea];
+		param.occupancytype = app.occupancytype;
+
+		return costSvc.calc( param );
+	}
+
+	//OCCUPANCY PERMIT APPLICATION
+	@Before(pattern="PersistenceService.update", eval="#{ args[0]._schemaname == 'occupancy_certificate' }")
+	public void beforeUpdateApplication(def evt) {
+		def app = evt.args[0];
+		if( app.supervisor ) {
+			app.supervisorid = app.supervisor.objid;
+		}
+		if( app.actualtotalfloorarea ) {
+			app.actualfixedcost = calcFixedCost( app );	
+		}
+		if( app.occupancytype?.objid  ) {
+			app.occupancytypeid = app.occupancytype?.objid;
+			app.actualfixedcost = calcFixedCost( app );		
+		}
+		if( app.applicant?.objid ) {
+			entityEm.find( [objid: app.applicant.objid]).update( app.applicant );
+		}
+
+	}
+
+
+	@After(pattern="PersistenceService.read", eval="#{ args[0]._schemaname == 'vw_occupancy_certificate' }")
+	public void afterOpenApplication(def evt) {
+		def p = evt.args[0];
+		def a = evt.result;
+		a.occupancytype.title = a.occupancytype.title?.toUpperCase();
+
+		//auto compute fees after opening:
+		a.amount = feeEm.find([appid:a.objid]).select("c:{SUM(amount)}").val();
+		a.payment = paymentEm.find([appid: a.objid ]).where("voided=0").orderBy("refdate DESC, refno DESC").first();
+	}
+
+
+	@Before(pattern="PersistenceService.removeEntity", eval="#{ args[0]._schemaname == 'occupancy_certificate' }")
+	public void beforeRemoveApp( def evt ) {
+		def p = evt.args[0];
+		def app = vwAppEm.find( [objid: p.objid]).first();
+		if( app.task.state != 'receiving') 
+			throw new Exception("Application can only be removed in receiving state");
+
+		def u = [appid: app.objid ];	
+		appEm.find([objid: app.objid]).update( [applicantid: "{NULL}", taskid: "{NULL}" ] );
+		entityEm.find( u ).delete();
+		appTaskEm.find( [refid: app.objid] ).delete();
+		appDocSvc.deleteDocuments( u );
+		profSvc.deleteAppProfessionals( u );
+		reqSvc.deleteRequirements( u );
+	} 
+
+}

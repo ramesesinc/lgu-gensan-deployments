@@ -1,0 +1,56 @@
+import com.rameses.annotations.*;
+import java.rmi.server.*;
+
+class OccupancyCertificateOboAppInterceptor {
+	
+	@Service("DateService")
+	def dateSvc;
+
+	@DataContext("occupancy_certificate")
+	def occEm;
+
+	@Env
+	def env;
+
+	@Before(pattern="OboAppService.create", eval="#{ args[0].appclass == 'occupancy_certificate' }")
+	public void beforeCreate(def evt) {
+		def app = evt.args[0];
+		if(!app.occupancytype) app.occupancytype = app.bldgpermit.occupancytype;
+		app.occupancytypeid = app.occupancytype?.objid;
+		app.totalfloorarea = app.actualtotalfloorarea;
+		app.totalfloorarea = app.actualtotalfloorarea;
+		app.numfloors = app.actualnumfloors;
+		app.projectcost = app.actualprojectcost;
+
+		//build the documents
+		def doclist = [];
+		if(app.infos) {
+			def bfp = [:];
+			bfp.objid = app.objid + ":BFP_SALES_TAX";
+			bfp.doctypeid = "BFP_SALES_TAX";
+			bfp.infos = app.infos;
+			doclist << bfp;		
+		}		
+    	app.documents = doclist;
+
+    	def profs = [];
+    	app.professionals.each {
+    		def p = [:];
+			p.designprofessional =  it.designprofessional ;
+			p.supervisor =  it.supervisor;
+			p.sectionid =  it.sectionid;
+			p.appid = app.objid;
+			if(p.designprofessional?.objid || p.supervisor?.objid) {
+				profs << p;					
+			}
+    	}
+    	app.professionals = profs;
+	}
+
+	@After(pattern="OboAppService.create", eval="#{ args[0].appclass == 'occupancy_certificate' }")
+	public void afterCreate(def evt) {
+		def app = evt.result;
+		occEm.find( [objid: app.objid ]).update( [actualfixedcost: app.fixedcost ] );
+	}
+
+}

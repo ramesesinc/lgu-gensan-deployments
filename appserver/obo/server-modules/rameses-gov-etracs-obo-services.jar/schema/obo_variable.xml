@@ -20,6 +20,7 @@
 		</complex>	
 
 		<field name="lookuplistname"/>
+		<field name="multiselect"/>
 	</element>
 
 </schema>

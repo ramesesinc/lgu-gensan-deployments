@@ -1,0 +1,8 @@
+<!-- This table is only used for testing appno uniqueness -->
+<schema>
+	<element tablename="obo_appno">
+		<field name="appno" primary="true" />
+		<field name="appid" required="true"/>
+	</element>
+</schema>
+

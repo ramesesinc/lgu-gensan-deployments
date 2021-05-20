@@ -10,8 +10,8 @@ app:
 
    modules:
       # obo
-      - { order: 304, version: 2.61, file: "modules/obo/rameses-gov-etracs-obo.jar" }
-      - { order: 301, version: 2.59, file: "modules/obo/rameses-gov-etracs-obo-building.jar" }
+      - { order: 304, version: 2.62, file: "modules/obo/rameses-gov-etracs-obo.jar" }
+      - { order: 301, version: 2.60, file: "modules/obo/rameses-gov-etracs-obo-building.jar" }
       - { order: 304, version: 2.56, file: "modules/obo/rameses-gov-etracs-obo-shared.jar" }
       #- { order: 302, version: 2.56, file: "modules/obo/rameses-gov-etracs-obo-occupancy.jar" }      
       - { order: 303, version: 2.56, file: "modules/obo/rameses-gov-etracs-obo-collection.jar" }

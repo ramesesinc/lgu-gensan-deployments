@@ -20,5 +20,6 @@ services:
       - ../../_custom/datasources/obods:/services/datasources/mainds
       - ../../_custom/output:/apps/server/output
       - ./server-modules:/enterprise/modules
-      - ./module-client/reports:/apps/server/templates      
+
+      - ./module-client/reports:/apps/server/templates
       - ../../_custom/module-client/obo:/apps/server/templates/custom

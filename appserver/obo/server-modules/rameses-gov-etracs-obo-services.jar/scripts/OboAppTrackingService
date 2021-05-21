@@ -85,6 +85,10 @@ class OboAppTrackingService {
 
 	@ProxyMethod
 	public def calcHours( def o ) {
+		if (!o.fromdate || !o.todate) {
+			return [hours: 0, minutes: 0];
+		}
+
 	    def sfromdate = (o.fromdate instanceof java.sql.Timestamp) ? formatTime.format( o.fromdate ) : o.fromdate.toString();
 	    def stodate = (o.todate instanceof java.sql.Timestamp) ? formatTime.format( o.todate ) : o.todate.toString();
 

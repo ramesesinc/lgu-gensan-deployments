@@ -292,6 +292,7 @@ class RPTCertificationOnlineService {
         	reporttype		 : reporttype,
         	properties 		 : [reporttype: reporttype],
 			entityid 		 : params.faases[0].taxpayer.objid,
+			addlinfo		 : reporttype.title,
 		]
 	}
 

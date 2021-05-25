@@ -16,6 +16,6 @@
 		<complex name="feegroup" ref="obo_feegroup" jointype="many-to-one" required="false">
 			<key field="feegroupid"  target="objid"/>
 		</complex> 		
-		
+		<field name="tag" />
 	</element>
 </schema>	

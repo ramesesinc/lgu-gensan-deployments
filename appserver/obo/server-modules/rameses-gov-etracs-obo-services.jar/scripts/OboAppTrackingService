@@ -85,6 +85,9 @@ class OboAppTrackingService {
 
 	@ProxyMethod
 	public def calcHours( def o ) {
+		if (!o.fromdate) o.fromdate = dateSvc.serverDate;
+		if (!o.todate) o.todate = dateSvc.serverDate;
+
 	    def sfromdate = (o.fromdate instanceof java.sql.Timestamp) ? formatTime.format( o.fromdate ) : o.fromdate.toString();
 	    def stodate = (o.todate instanceof java.sql.Timestamp) ? formatTime.format( o.todate ) : o.todate.toString();
 
@@ -171,6 +174,7 @@ class OboAppTrackingService {
 				def thr=0; 
 				def tmin=0;
 				entry.subtasks.each {
+					it.status = (it.todate) ? 'Completed' : 'Ongoing';
 					def t = calcHours( [fromdate:it.fromdate, todate:it.todate] );
 					thr += t.hours;
 					tmin+= t.minutes; 

@@ -12,6 +12,6 @@
 		<complex name="item" ref="obo_itemaccount" jointype="many-to-one" required="true">
 			<key field="itemid" target="objid" />
 		</complex>	
-
+		<field name="dynamic"  type="integer"/>
 	</element>
 </schema>	

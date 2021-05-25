@@ -14,5 +14,9 @@
 			<key field="parentid" target="objid" />		
 		</complex>	
 		
+		<complex name="file" ref="sys_file" jointype="many-to-one" required="true">
+			<key field="fileid" target="objid" />		
+		</complex>	
+
 	</element>
 </schema>

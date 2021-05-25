@@ -18,6 +18,9 @@
 
 		<field name="apptype" />
 		<field name="txntype" />
+		<field name="timestart" type="timestamp"/>
+		
+		<field name="assessed" />
 
 	</element>
 </schema>

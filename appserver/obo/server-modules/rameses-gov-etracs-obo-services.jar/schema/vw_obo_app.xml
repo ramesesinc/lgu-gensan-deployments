@@ -30,6 +30,8 @@
 		<field name="createdby_objid" />
 		<field name="createdby_name" />
 		<field name="dtcreated" type="timestamp"/>	
+		<field name="timestart" type="timestamp" />
+		<field name="assessed" />
 
 	</element>
 </schema>

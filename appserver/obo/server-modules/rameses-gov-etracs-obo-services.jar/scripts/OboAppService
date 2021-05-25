@@ -36,6 +36,9 @@ class OboAppService {
 	@DataContext("vw_obo_app")
 	def vwAppEm;
 
+	@DataContext("obo_app")
+	def abstractAppEm;
+
 	@DataContext("obo_appno")
 	def appnoEm;
 
@@ -258,6 +261,11 @@ class OboAppService {
 		return app;
 	}
 
+	@ProxyMethod
+	public void updateTimestart(def o) {
+		if(!o.appid) throw new Exception("appid is required in OboAppService.startTrackTime");	
+		abstractAppEm.find( [objid: o.appid ] ).update( [timestart: dateSvc.getServerDate() ] );
+	}
 
 
 }

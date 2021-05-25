@@ -2,8 +2,8 @@ import com.rameses.annotations.*;
 
 class ObopAppAttachmentInterceptor {
 	
-	@Env
-	def env;
+	@Service("DateService")
+	def dateSvc;
 
 	@DataContext("obo_app_attachment")
 	def attachEm;
@@ -13,6 +13,19 @@ class ObopAppAttachmentInterceptor {
 
 	@DataContext("sys_file")
 	def fileEm;
+
+	@Env
+	def env;
+
+	@Before(pattern="PersistenceService.create", eval="#{args[0]._schemaname == 'obo_app_attachment' }")
+	public void beforeCreate(def evt) {
+		def o = evt.args[0];
+		o.dtcreated = dateSvc.serverDate;
+		o.createdby = [objid: env.USERID, name: env.FULLNAME];
+		def a = fileEm.create( o );
+		o.fileid = a.objid;
+		o.file = a;
+	}
 
 	@Before(pattern="PersistenceService.removeEntity", eval="#{args[0]._schemaname == 'obo_app_attachment' }")
 	public void beforeRemove(def evt) {

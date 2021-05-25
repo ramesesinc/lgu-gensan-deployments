@@ -30,6 +30,12 @@ public class OboAppFeeService  {
 	@DataContext("obo_itemaccount")
 	def itemAcctEm;
 
+  	@DataContext("vw_obo_app")
+    def vwAbstractAppEm;
+
+	@DataContext("obo_app")
+    def abstractAppEm;
+
 	@DataContext(dynamic=true)
 	def db;
 
@@ -46,17 +52,18 @@ public class OboAppFeeService  {
 
 	//This will save the fees and returns the total
 	@ProxyMethod
-	public def saveFees(items) {
+	public def saveFees(def o) {
 		//group totals by doctypeid
-		items.each {
+		o.items.each {
 			//delete if there are existing items
 			def zz = feeEm.find( [appid: it.appid, itemid: it.item.objid ] ).first();
 			if( zz ) feeEm.find( [objid: zz.objid] ).delete();
 			feeEm.create( it );
 		}
-		items.groupBy{ it.parentid }.each { k,v->
+		o.items.groupBy{ it.parentid }.each { k,v->
 			updateTotals( [parentid: k] );
 		}
+		abstractAppEm.find([objid: o.appid]).update( [assessed: 0 ] );
 	}
 
 	@ProxyMethod
@@ -69,6 +76,7 @@ public class OboAppFeeService  {
 			feeEm.create( o );
 		}
 		updateTotals( o );
+		abstractAppEm.find([objid: o.appid]).update( [assessed: 0 ] );
 	}
 
 	@ProxyMethod
@@ -140,11 +148,12 @@ public class OboAppFeeService  {
 			it.item = p;
 			it.amtpaid = 0;
 			it.appid = sd.appid;
+			it.dynamic = 0;
 			it.sortorder = (p.sortorder == null ? 100 : p.sortorder);
 			items << it;			
 		};
 		if( o.savefees == true ) {
-			saveFees( items );
+			saveFees( [appid: sd.appid, items: items] );
 		};
 		return [items: items];
 	}
@@ -158,9 +167,61 @@ public class OboAppFeeService  {
 		}
 	}
 
+
+	//This should be called
+	@ProxyMethod
+	public void buildPaymentOrder( def o ) {
+		if(!o.appid) throw new Exception("Please specify appid in OboAppAssessmentService.assess");
+		
+		//assess all documents first before proceeding
+		assessAll( o );
+
+		//clear all dynamic items first
+		//delete first all dynamic items
+        feeEm.find( [appid: o.appid] ).where( " dynamic = 1 ").delete();	
+
+        def vitems = feeEm.find( [appid: o.appid ] ).list();
+        def factBuilder = new FactBuilder();
+        vitems.each {
+        	def bi = new BillItem( refid: it.objid, billcode: it.item.objid, amount: it.amount );	
+        	bi.tag = it.item.tag;
+            factBuilder.facts << bi;
+        };
+
+		//get the appclass first
+		def app = vwAbstractAppEm.find( [objid: o.appid ]).select("objid,appclass").first();
+        factBuilder.facts << new OboPaymentOrder( apptype: app.appclass.toUpperCase()  );
+
+        def req = [:];
+        req.factBuilder = factBuilder;
+        req.rulename = "oboassessment";
+        req.params = [rulename:req.rulename];
+        req.include_items = false;
+        def res = billingRuleSvc.execute( req );
+
+        def items = [];
+        res.billitems.findAll{ it.refid == null }.each {
+            def p = itemAcctEm.find( [objid: it.billcode ] ).first();
+            def pdoc = docSvc.findDoc( [create_if_not_exist: true, appid:app.objid, doctypeid: p.doctypeid ] );
+            it.parentid = pdoc.objid;
+            it.item = p;
+            it.dynamic = 1;
+            it.amtpaid = 0;
+            it.appid = app.objid;
+            it.sortorder = (p.sortorder == null ? 100 : p.sortorder);
+            items << it;            
+        };
+		saveFees( [appid: o.appid, items: items] );
+		abstractAppEm.find( [objid: app.objid]).update( [assessed: 1 ] );
+	}
+
 	@ProxyMethod
 	public void validateAllFees(def o ) {
 		if(!o.appid) throw new Exception("appid is required in OboAppFeeService.validateAllFees");
+		def app = abstractAppEm.find([objid: o.appid]).select("assessed").first();
+		if(app.assessed!=1 )
+			throw new Exception("Please generate payment order first");
+
 		def docList = vwDocEm.find( [appid: o.appid ]).where( "requirefee > 0 AND (amount IS NULL OR amount=0) " ).list();
 		if(docList) {
 			throw new Exception("The following document require fees to be assessed: \n" + docList*.doctype.title.join("\n") );

@@ -8,6 +8,9 @@
 		
 		<field name="orgcode" />
 		<field name="trackingno" searchable="true"/>
+		<field name="timestart" type="timestamp"/>
+		<field name="assessed" />
+
 		<field name="contact_name" />
 		<field name="contact_detail" />
 		<field name="contact_email" />

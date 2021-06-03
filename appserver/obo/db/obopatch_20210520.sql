@@ -1,7 +1,8 @@
 ALTER TABLE `obo_app_fee` ADD COLUMN `dynamic` int(1);
 UPDATE obo_app_fee SET dynamic = 0;
 
-ALTER TABLE `obo_app` ADD COLUMN `timestart` datetime(0), ADD COLUMN `assessed` int(1);
+ALTER TABLE `obo_app` ADD COLUMN `timestart` datetime; 
+ALTER TABLE `obo_app` ADD COLUMN `assessed` int(1);
 
 UPDATE obo_doctype SET requirefee = 1 WHERE requirefee = 2;
 

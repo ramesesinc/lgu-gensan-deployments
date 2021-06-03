@@ -10,6 +10,7 @@
 		<field name="tdno" />
 
 		<field name="truecopycertid" />
+		<field name="truecopycertfee" />
 		<field name="noaid" />
 	</element>
 </schema>

@@ -27,7 +27,7 @@ class BuildingPermitOboAppInterceptor {
     	}
     	//loop next accessories
     	if(app.accessories) {
-    		def z = [objid: app.objid+"_ACCESSORIES"];
+    		def z = [:];
     		z.doctypeid = 'ACCESSORIES';
     		def accInfos = [];		
 			app.accessories.each { acc->

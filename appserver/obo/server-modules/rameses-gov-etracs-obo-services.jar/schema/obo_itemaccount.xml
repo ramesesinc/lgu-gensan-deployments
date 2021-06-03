@@ -1,6 +1,6 @@
 <schema>
 	<element tablename="obo_itemaccount">
-		<field name="objid" primary="true" visible="true" caption="ID"/>
+		<field name="objid" primary="true" visible="true" caption="ID" searchable="true"/>
 		<field name="title" searchable="true"/>
 		<field name="item_objid" />
 		<field name="item_code" caption="Map Acct Code"/>

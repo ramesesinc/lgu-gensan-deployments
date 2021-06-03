@@ -1,0 +1,12 @@
+<schema>
+	<element tablename="occupancy_rpu_item">
+		<field name="objid" primary="true" prefix="OCCRPUITM"/>
+		<field name="parentid" required="true"/>
+		<field name="faasid" required="true"/>
+		<field name="tdno" required="true"/>
+		<field name="pin" required="true"/>		
+		<field name="truecopycertid" required="true"/>
+		<field name="truecopycertfee" />
+	</element>
+</schema>
+		

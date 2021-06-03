@@ -8,11 +8,11 @@ class RptOboPluginFaasInterceptor {
 	def querySvc;
 
 	@After(pattern="FAASService.approveFaas", index=1000)
-	void afterApproveFaas(evt) {
-//		def faas = evt.result;
-//		def occupancy = querySvc.findFirst([_schemaname: "vw_occupancy_rpu", findBy: [faasid: faas.objid]]);
-//		if (!occupancy) return;
-//
-//		occupancySvc.approve([objid: occupancy.objid, tdno: faas.tdno]);
+	def afterApproveFaas(evt) {
+		def faas = evt.result;
+		def occupancy = querySvc.findFirst([_schemaname: "vw_occupancy_rpu", findBy: [faasid: faas.objid]]);
+		if (!occupancy) return;
+
+		occupancySvc.approve([objid: occupancy.objid, tdno: faas.tdno]);
 	}
 }

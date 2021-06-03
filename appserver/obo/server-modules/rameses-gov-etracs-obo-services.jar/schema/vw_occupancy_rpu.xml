@@ -8,15 +8,24 @@
 		<field name="faasid" />
 		<field name="tdno" />
 		<field name="txnmode" indexed="true"/>
+		<field name="truecopycertid"/>
+		<field name="noaid" />
 		
 		<field name="bldgpermitid" />
 		<field name="bldgappid" />
-		<field name="bldgpermitno" />
+		<field name="bldgpermitno" caption="Bld Permit No"/>
 		<field name="bldgpermitdtissued" />
 
 		<field name="occpermitid" />
-		<field name="occpermitno" />
+		<field name="occpermitno" caption="Occ. Cert No"/>
 		<field name="occpermitdtissued" />
+
+		<field name="occupancytype_objid" />
+		<field name="occupancytype_title" />
+		<field name="occupancytype_division_objid" />
+		<field name="occupancytype_division_title" />
+		<field name="occupancytype_group_objid" />
+		<field name="occupancytype_group_title" />
 
 		<complex name="applicant" ref="obo_app_entity" jointype="many-to-one" required="true">
 			<key field="applicantid" target="objid" />

@@ -1,0 +1,26 @@
+import com.rameses.annotations.*; 
+
+class OboRptMenuNotificationInterceptor {
+	
+	@DataContext("occupancy_rpu")
+	def occRpuEm;
+
+	@After(pattern="MenuNotificationService.getCount", eval="#{ args[0].notificationid == 'obo-rpt' }")
+	public void getRptModuleNotification( def evt ) {
+		def p = evt.args[0];
+		def result = evt.result;
+		def r = occRpuEm.where( "state=0" ).select("c:{COUNT(*)}").val();
+		if(r) result.count = r;
+	}	
+
+
+	@After(pattern="MenuNotificationService.getCount", eval="#{ args[0].notificationid == 'occupancy_rpu' }")
+	public void getRpuForInspectionCount( def evt ) {
+		def p = evt.args[0];
+		def result = evt.result;
+		def r = occRpuEm.where( "state=0" ).select("c:{COUNT(*)}").val();
+		if(r) result.count = r;
+	}	
+
+
+}

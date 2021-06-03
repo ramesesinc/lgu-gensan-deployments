@@ -1,0 +1,95 @@
+import com.rameses.annotations.*;
+import java.rmi.server.*;
+
+class OccupanctCertificateEmailAttachmentInterceptor { 
+
+	@DataContext("vw_obo_app_doc")
+	def vwSubdocEm;
+
+	@DataContext("vw_obo_app")
+	def vwAppEm;
+
+	@DataContext("occupancy_rpu")
+	def rpuEm;
+
+	@DataContext("occupancy_rpu_item")
+	def rpuItemEm;
+
+	@Service(value="JasperReportService", connection="rpt")
+	def jasperSvc;
+
+	String outputReportPath = "/apps/server/output/";
+
+	@Before(pattern="JasperEmailQueueService.send", eval="#{args[0].reportid == 'occupancy_certificate_email_attachment' }")
+	public void beforeSendEmailQueue( def evt ) {
+		def p = evt.args[0];
+
+		def mainApp = vwAppEm.find([objid: p.refid ]).first();
+
+		if(!p.to) p.to = mainApp.contact.email;
+
+		def app = vwSubdocEm.find( [appid: p.refid ] ).where("doctype.objid = 'OCCUPANCY_CERTIFICATE' ").first();
+		if(!app)
+			throw new Exception("Occupancy Certificate Document not found");
+
+		p.info = mainApp;
+		p.connection = "obo-email-server";
+	}
+
+    @Before(pattern="JasperReportEmailService.send", eval="#{ args[0].reportid == 'occupancy_certificate_email_attachment' }", index=-10000)
+    public void onSendEmail(def evt) {
+        def o = evt.args[0];
+        def refid = o.refid;
+
+        o.attachments = [];
+
+		def doclist = vwSubdocEm.find( [appid: o.refid ] ).where("doctype.includeinemail = 1").select("doctype.objid,objid").list();
+		doclist.each {
+			def z = [:];
+			z.title = it.doctype.objid + ".pdf";
+			z.reportid = "obo_app_doc";
+			z.parameters = [objid: it.objid];
+			o.attachments << z; 
+		}
+
+		def rpu = rpuEm.find( [appid: refid ]).first();
+		if(rpu.truecopycertid) {
+			try {
+		        def res = jasperSvc.generateReport([reportid: "tdtruecopy", refid: rpu.truecopycertid] );        	
+		        if( res.tokenid ) {
+	        		o.attachments << [title: "TrueCopyCert.pdf", filename:outputReportPath+res.tokenid+".pdf" ];        	
+		        }
+        	}
+        	catch( ignErr ) {
+        		println "error generating rpt reports for email. " + ignErr.getMessage();
+        	}	
+		}
+		if(rpu.noaid) {
+			try {
+		        def res = jasperSvc.generateReport([reportid: "rptnoa", refid: rpu.noaid] );        	
+		        if( res.tokenid ) {
+	        		o.attachments << [title: "NOA.pdf", filename:outputReportPath+res.tokenid+".pdf" ];        	
+		        }
+        	}
+        	catch( ignErr ) {
+        		println "error generating rpt reports for email. " + ignErr.getMessage();
+        	}	
+		}
+		//load also the rpu machineries
+		def list = rpuItemEm.find([parentid: rpu.objid]).list();
+		list.each {
+			try {
+		        def res = jasperSvc.generateReport([reportid: "tdtruecopy", refid: it.truecopycertid] );        	
+		        if( res.tokenid ) {
+	        		o.attachments << [title: "TrueCopyCert" + it.tdno + ".pdf", filename:outputReportPath+res.tokenid+".pdf" ];        	
+		        }
+        	}
+        	catch( ignErr ) {
+        		println "error generating rpt reports for email. " + ignErr.getMessage();
+        	}	
+		}
+    } 
+
+
+
+} 

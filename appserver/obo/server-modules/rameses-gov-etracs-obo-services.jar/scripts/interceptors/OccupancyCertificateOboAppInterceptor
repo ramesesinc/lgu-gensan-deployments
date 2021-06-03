@@ -22,11 +22,13 @@ class OccupancyCertificateOboAppInterceptor {
 		app.numfloors = app.actualnumfloors;
 		app.projectcost = app.actualprojectcost;
 
+		//replace the applicant objid so it will create another specific for occupancy certificate
+		app.applicant.remove("objid");
+
 		//build the documents
 		def doclist = [];
 		if(app.infos) {
 			def bfp = [:];
-			bfp.objid = app.objid + ":BFP_SALES_TAX";
 			bfp.doctypeid = "BFP_SALES_TAX";
 			bfp.infos = app.infos;
 			doclist << bfp;		

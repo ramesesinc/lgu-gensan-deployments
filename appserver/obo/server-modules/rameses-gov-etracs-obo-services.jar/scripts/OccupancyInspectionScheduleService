@@ -21,6 +21,9 @@ class OccupancyInspectionScheduleService {
 	@DataContext("sys_email_queue")
 	def emailQueue;
 
+    @DataContext("sys_email_template")
+    def templateEm;
+
     @ProxyMethod
     public void transmitSchedule( def o ) {
     	if(!o.appid) throw new Exception("appid is required in OccupancyInspectionScheduleService.addSchedule" );
@@ -35,25 +38,19 @@ class OccupancyInspectionScheduleService {
     	def emails = var.obo_inspection_calendar_group.replace("\n","").split(";").toList();
     	if(!emails) throw new Exception("Please specify at least one email in obo_inspection_calendar_group");
     	emails << app.contact.email;
+    	emails = emails.findAll{!!it}.unique();
 
-    	emails = emails.unique();
-    	def df =  new java.text.SimpleDateFormat( "yyyy-MM-dd HH:mm" );
+        def tmp = templateEm.find( [objid: "obo_app_inspection_schedule" ]).first();
+        if(!tmp) throw new Exception("Please specify obo_app_inspection_schedule in email template");
 
-    	def title =  "Inspection Schedule for Occupancy Permit ["+ app.appno + "]";
-
-        def buff  = [];
-        buff << "App No: " + app.appno  + " " + (app.trackingno ? app.trackingno : "" );       	        
-        if(app.bldgpermit.controlno) buff << "Bldg Permit No: " + app.bldgpermit.controlno;       
-        buff << "Project Title: " + app.bldgpermit.title;
-        buff << "Applicant: " + app.applicant.name;
-        buff << "Location: " + app.location.text;
-        buff << "Inspection Date: " + df.format( app.inspectiondate );
-		def msg =  buff.join("<br>");
+        def templateEngine = new groovy.text.SimpleTemplateEngine(); 
+        def subject = templateEngine.createTemplate(tmp.subject).make(app)?.toString(); 
+        def msg = templateEngine.createTemplate(tmp.message).make(app)?.toString(); 
 
     	if( o.use_google_calendar == true ) {
     		def calSvc = svc.lookup("GoogleCalendarService");
     		def p = [:];
-    		p.subject = title;
+    		p.subject = subject;
     		p.startdate = app.inspectiondate;
     		p.enddate = dateSvc.add( app.inspectiondate, "5h" );
     		p.emails = emails;
@@ -69,9 +66,9 @@ class OccupancyInspectionScheduleService {
 	    		q.refid = app.objid;
 	    		q.state = 0;
 	    		q.dtsent = dateSvc.getServerDate();
-	    		q.subject = title;
+	    		q.subject = subject;
 	    		q.connection = "obo-email-server";
-	    		q.title = title; 
+	    		q.title = subject; 
 	    		q.message = msg;
 	    		emailQueue.create(  q );
     		}

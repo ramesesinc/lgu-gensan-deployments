@@ -22,6 +22,9 @@ class RptOboPluginService {
 	@DataContext("bldgrpu")
 	def em_bldgrpu;
 
+	@ActiveDB('rptis_obo_plugin')
+	def em_rptis_obo;
+
 
 	@ProxyMethod
 	public def getRpus(occupancy) {
@@ -31,6 +34,12 @@ class RptOboPluginService {
 	@ProxyMethod
 	public def openFaas(faas) {
 		return faasSvc.openFaas(faas);
+	}
+
+	@ProxyMethod
+	public def getTdno(faas) {
+		if (!faas.objid) throw new Exception('objid must be specified');
+		return em_faas.select('tdno').find([objid: faas.objid]).first();
 	}
 
 	@ProxyMethod
@@ -73,16 +82,21 @@ class RptOboPluginService {
 		faas.rpu.online = true;
 		faasSvc.updateFaas(faas);
 
-		if ('bldg'.equalsIgnoreCase(params.rputype)) {
-			occupancySvc.saveFaas([objid: occupancy.objid, faasid: faas.objid]);
+		if (params.rputype.toLowerCase().matches('bldg|mach')) {
+			updateOccupancyFaas([objid: occupancy.objid, faasid: faas.objid]);
 		}
 		return faas;
 	}
 
 	@ProxyMethod
-	public def createMachineryFaas(params) {
-		params.rputype = 'mach';
-		return createFaas(params);
+	public void updateOccupancyFaas(occupancy) {
+		occupancySvc.saveFaas(occupancy);
+	}
+
+	@ProxyMethod
+	public def getLinkRpus( def o ) {
+		if(!o.faasid) throw new Exception("faasid is required in RptOboPluginService.getLinkRpus");
+		return em_rptis_obo.getLinkRpus(o)
 	}
 
 	@ProxyMethod
@@ -90,12 +104,16 @@ class RptOboPluginService {
 		if (!occupancy.faasid) throw new Exception('faasid must be specified')
 		if (!occupancy.permitno) throw new Exception('permitno must be specified')
 		if (!occupancy.permitdtissued) throw new Exception('permitdtissued must be specified')
+		if (!occupancy.bldgpermitno) throw new Exception('bldgpermitno must be specified')
+		if (!occupancy.bldgpermitdtissued) throw new Exception('bldgpermitdtissued must be specified')
 
 		def rpuid = em_faas.select("rpuid").find([objid: occupancy.faasid]).val();
 		if (rpuid) {
 			em_bldgrpu.find([objid: rpuid]).update([
+				permitno: occupancy.bldgpermitno,
+				permitdate: occupancy.bldgpermitdtissued,
 				occpermitno: occupancy.permitno,
-				dtcertoccupancy: occupancy.permitdtissued,
+				dtcertoccupancy: occupancy.permitdtissued
 			]);
 		}
 

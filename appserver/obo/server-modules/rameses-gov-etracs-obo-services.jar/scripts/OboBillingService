@@ -19,8 +19,11 @@ class OboBillingService {
 		if(!o.refno ) throw new Exception("refno is required in OboBillingService.getBillItems");
 
 		def app = vwAppEm.find( [appno: o.refno ]).first();
-		if(!app) 
-			throw new Exception("Application not found!");
+		if(!app) {
+			//test the trackingno
+			app = vwAppEm.find( [trackingno: o.refno ] ).first();
+			if(!app) throw new Exception("Application not found!");
+		}
 
 		if(app.task.state != 'payment')
 			throw new Exception("This application is not yet ready for payment");	
@@ -32,7 +35,6 @@ class OboBillingService {
 		if ( !fees ) throw new Exception("There are no items for payment");
 
 		def p = [:];
-		p.apptype = app.apptype;
 		p.permittype = app.doctitle;
 
 		p.items = fees; 
@@ -41,7 +43,6 @@ class OboBillingService {
 
 		p.objid = app.objid;
 		p.appno = app.appno;
-		p.apptype = app.apptype;
 		p.trackingno = app.trackingno;
 		p.txntype = "obo";
 		p.title = app.title;

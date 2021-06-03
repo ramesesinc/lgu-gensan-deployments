@@ -174,7 +174,7 @@ public class OboAppFeeService  {
 		if(!o.appid) throw new Exception("Please specify appid in OboAppAssessmentService.assess");
 		
 		//assess all documents first before proceeding
-		assessAll( o );
+		//assessAll( o );
 
 		//clear all dynamic items first
 		//delete first all dynamic items
@@ -212,6 +212,14 @@ public class OboAppFeeService  {
             items << it;            
         };
 		saveFees( [appid: o.appid, items: items] );
+
+		//check if all items are mapped. If not throw error.
+		def itemList = feeEm.find( [appid: o.appid] ).where("item.item.objid IS NULL").list();
+		if(itemList) {
+			throw new Exception("The ff. fees are not mapped. \n" + itemList*.item.title.join("\n"))			
+		}
+
+
 		abstractAppEm.find( [objid: app.objid]).update( [assessed: 1 ] );
 	}
 
@@ -222,10 +230,13 @@ public class OboAppFeeService  {
 		if(app.assessed!=1 )
 			throw new Exception("Please generate payment order first");
 
+		/*	
 		def docList = vwDocEm.find( [appid: o.appid ]).where( "requirefee > 0 AND (amount IS NULL OR amount=0) " ).list();
 		if(docList) {
 			throw new Exception("The following document require fees to be assessed: \n" + docList*.doctype.title.join("\n") );
 		}
+		*/
+		
 		//check first if allitems are mapped
 		def unmappedList = feeEm.find([appid: o.appid]).where("item.item.objid IS NULL").list();
 		if(unmappedList) {

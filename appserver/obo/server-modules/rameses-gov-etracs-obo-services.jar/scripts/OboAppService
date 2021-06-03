@@ -1,5 +1,6 @@
 import com.rameses.annotations.*;
 import java.rmi.server.*;
+import com.rameses.util.*;
 
 class OboAppService {
 	
@@ -85,7 +86,8 @@ class OboAppService {
 		appnoEm.create( test );
 
 		def u = [:];
-		u.appdate = dateSvc.getServerDate();
+		u.appdate = o.appdate;
+		if(!u.appdate) u.appdate = dateSvc.getServerDate();
 		u.appno = appno;
 		def appEm = db.lookup( app.appclass )
 		appEm.find( [objid: o.appid ] ).update( u );
@@ -160,12 +162,17 @@ class OboAppService {
 		//save the obo app first before determining the schema used
 		if(!app.applicant) throw new Exception("Applicant is required");
 		
+		def orgno = env.ORGID;
 		if(app.trackingno) {
-			def orgno = env.ORGID;
 			if( !app.trackingno.startsWith(orgno) ) {
 				app.trackingno = orgno + "-" + app.trackingno;
 			}
 		}	
+		else {
+			//auto assign a tracking no. immediately
+			def kg = new KeyGen();
+			app.trackingno = kg.generateAlphanumKey(orgno+"-",8);
+		}
 
 		app.objid = "BAPP" + new UID();
 		app.doctypeid = app.appclass.toUpperCase();
@@ -209,7 +216,9 @@ class OboAppService {
 			appEm.find([objid:app.objid]).update( [taskid: tsk.taskid] );
 
 			if(!app.appno) {
-				assignAppno( [appid: app.objid ] );
+				if( !atask.state.matches('receiving|.*requirement.*') ) {
+					assignAppno( [appid: app.objid ] );
+				}
 			}	
 			else {
 				//test the appno if unique

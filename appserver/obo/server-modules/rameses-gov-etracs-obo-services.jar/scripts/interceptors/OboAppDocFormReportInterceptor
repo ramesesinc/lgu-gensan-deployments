@@ -42,7 +42,6 @@ class OboAppDocFormReportInterceptor {
 		def docsub = vwSubdocEm.find([objid: id ]).first();
 		def vapp = appEm.find( [objid: docsub.appid ] ).select("appclass,schemaname,doctitle").first();
 
-		def rpuEm = null;
 		def vwAppEm = db.lookup( vapp.schemaname);
 		def appTaskEm = db.lookup( vapp.appclass + "_task"); 
 
@@ -64,15 +63,12 @@ class OboAppDocFormReportInterceptor {
 		}
 
 		//load also the RPUs for display. get the tdno and tctno
-		if(rpuEm !=null ) {
-			def rpus = rpuEm.find( [appid: docsub.appid ] ).list();
-			if( rpus ) {
-				docsub.tdno = rpus*.tdno.join(",");
-				docsub.tctno = rpus*.tctno.join(",");			
-				docsub.lotno = rpus*.lotno.join(",");						
-			}		
-		};
-		
+		def rpus = rpuEm.find( [appid: docsub.appid ] ).list();
+		if( rpus ) {
+			docsub.tdno = rpus*.tdno.join(",");
+			docsub.tctno = rpus*.tctno.join(",");			
+			docsub.lotno = rpus*.lotno.join(",");						
+		}		
 		docsub.contact = app.contact;
 
 		docsub.applicant = app.applicant;
@@ -80,7 +76,7 @@ class OboAppDocFormReportInterceptor {
 		docsub.occupancytype = app.occupancytype;
 		docsub.appno = app.appno;
 		docsub.trackingno = app.trackingno;
-		docsub.apptype = app.apptype;
+		docsub.apptype = app.apptype?.toUpperCase();
 
 		//this is dtfiled due to the reports
 		docsub.dtfiled = app.appdate;		
@@ -130,7 +126,7 @@ class OboAppDocFormReportInterceptor {
 			else it.value = docsub.put(vname,  it.stringvalue);
 		}
 
-		//load fees
+		//load fees for subtype
 		def feeParentid = docsub.objid;
 		if( docsub.doctype.subtypeof !=null ) {
 			def papp = vwSubdocEm.find( [appid: docsub.appid, doctypeid: docsub.doctype.subtypeof ]).first();
@@ -141,11 +137,9 @@ class OboAppDocFormReportInterceptor {
 		if( rct ) {
 			docsub.receiptno = rct.refno;
 			docsub.receiptdate = rct.refdate;
-			def pay = vwDocPayEm.find( [ parentid: feeParentid ] ).select("amount:{SUM(amount)}").groupBy("payment.refno,payment.refdate").first();
-			if( pay?.payment ) {
-				docsub.amount = pay.amount;		
-			}
 			docsub.receiptamount = rct.amount;
+			def pay = vwSubdocEm.find( [ objid: feeParentid ] ).select("amount").first();
+			docsub.amount = pay?.amount;		
 		}
 
 		//load evaluator. find the associated task item

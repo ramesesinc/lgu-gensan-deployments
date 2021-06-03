@@ -35,6 +35,10 @@ class OccupancyCertificatePersistenceInterceptor {
 	@DataContext("obo_app_fee")
 	def feeEm;
 
+	@DataContext("occupancy_rpu")
+	def occEm;
+
+
 	@Env
 	def env;
 
@@ -83,6 +87,10 @@ class OccupancyCertificatePersistenceInterceptor {
 		//auto compute fees after opening:
 		a.amount = feeEm.find([appid:a.objid]).select("c:{SUM(amount)}").val();
 		a.payment = paymentEm.find([appid: a.objid ]).where("voided=0").orderBy("refdate DESC, refno DESC").first();
+
+		//retrieve also the related occupancy permit
+		def rpu = occEm.find( [appid: p.objid] ).select("objid").first(); 
+		if( rpu ) a.rpuid = rpu.objid;
 	}
 
 

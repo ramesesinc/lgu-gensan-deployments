@@ -12,11 +12,10 @@ class OboCashReceiptService {
 	public def getBilling( pp ) {
 		def param = pp.params;
 		if ( !param ) throw new Exception('params argument is required in OboBillingService'); 
-		if( !param.apptype ) throw new Exception("apptype is required");
 		if( !param.id ) throw new Exception("id is required");
 
 		// compute bill items 
-		def res = billingSvc.getBillItems( [refno: param.id.trim(), apptype:param.apptype, include_items: true, amtpaid: param.amtpaid ] );
+		def res = billingSvc.getBillItems( [refno: param.id.trim(), include_items: true, amtpaid: param.amtpaid ] );
 
 		if ( res.task?.state != 'payment' ) 
 			throw new Exception("This is not yet ready for payment");
@@ -36,7 +35,6 @@ class OboCashReceiptService {
 		def resp = [items: res.items, billitems: billitems ]; 
 		resp.appid = res.objid;
 		resp.appno = res.appno;
-		resp.apptype = res.apptype;
 		resp.txntype = "obo";
 		resp.app = [appid: res.objid ];
 

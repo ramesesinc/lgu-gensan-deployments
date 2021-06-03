@@ -14,9 +14,6 @@ class OboMenuNotificationInterceptor {
 	@DataContext("obo_app_doc")
 	def appDocEm;
 
-	@DataContext("occupancy_rpu")
-	def occRpuEm;
-
 	@Service("UserRoleService")
 	def userRole;
 
@@ -103,7 +100,6 @@ class OboMenuNotificationInterceptor {
 		def g = wfEm.getTaskCount( [processname: "occupancy_certificate", roles:roleStr, userid: env.USERID  ] );
 		if( g ) result.count = g.sum{ it.count };
 	}	
-	
 
 	/************************************************************************************************************
 	* THIS IS THE COUNT FOR OBO MAIN MENU
@@ -122,27 +118,6 @@ class OboMenuNotificationInterceptor {
 		}
 		result.addAll( list );
 	}
-
-
-	/************************************************************************************************************
-	* OTHERS
-	************************************************************************************************************/
-	@After(pattern="MenuNotificationService.getCount", eval="#{ args[0].notificationid == 'obo-rpt' }")
-	public void getRptModuleNotification( def evt ) {
-		def p = evt.args[0];
-		def result = evt.result;
-		def r = occRpuEm.where( "state=0" ).select("c:{COUNT(*)}").val();
-		if(r) result.count = r;
-	}	
-
-
-	@After(pattern="MenuNotificationService.getCount", eval="#{ args[0].notificationid == 'occupancy_rpu' }")
-	public void getRpuForInspectionCount( def evt ) {
-		def p = evt.args[0];
-		def result = evt.result;
-		def r = occRpuEm.where( "state=0" ).select("c:{COUNT(*)}").val();
-		if(r) result.count = r;
-	}	
 
 
 }

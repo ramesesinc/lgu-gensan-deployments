@@ -11,13 +11,13 @@ app:
 
    modules:
       # obo
-      - { order: 304, version: 2.64, file: "modules/obo/rameses-gov-etracs-obo.jar" }
-      - { order: 301, version: 2.62, file: "modules/obo/rameses-gov-etracs-obo-building.jar" }
-      - { order: 304, version: 2.57, file: "modules/obo/rameses-gov-etracs-obo-shared.jar" }
-      #- { order: 302, version: 2.58, file: "modules/obo/rameses-gov-etracs-obo-occupancy.jar" }      
-      - { order: 303, version: 2.57, file: "modules/obo/rameses-gov-etracs-obo-collection.jar" }
+      - { order: 304, version: 2.66, file: "modules/obo/rameses-gov-etracs-obo.jar" }
+      - { order: 301, version: 2.66, file: "modules/obo/rameses-gov-etracs-obo-building.jar" }
+      - { order: 304, version: 2.66, file: "modules/obo/rameses-gov-etracs-obo-shared.jar" }
+      #- { order: 302, version: 2.66, file: "modules/obo/rameses-gov-etracs-obo-occupancy.jar" }      
+      - { order: 303, version: 2.66, file: "modules/obo/rameses-gov-etracs-obo-collection.jar" }
       - { order: 300, version: 2.56, file: "modules/obo/rameses-gov-etracs-obo-cloud.jar" }
-      - { order: 305, version: 2.57, file: "modules/obo/rameses-gov-etracs-rptis-obo.jar" }
+      - { order: 305, version: 2.66, file: "modules/obo/rameses-gov-etracs-rptis-obo.jar" }
       - { order: 306, version: 2.56, file: "modules/obo/reports/bfp-standard-forms.jar" }
       - { order: 306, version: 2.56, file: "modules/obo/reports/obo-standard-forms.jar" }
       - { order: 306, version: 2.56, file: "modules/obo/reports/zoning-standard-forms.jar" }

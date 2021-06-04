@@ -66,7 +66,9 @@ class OboAppDocFormReportInterceptor {
 		def rpus = rpuEm.find( [appid: docsub.appid ] ).list();
 		if( rpus ) {
 			docsub.tdno = rpus*.tdno.join(",");
-			docsub.tctno = rpus*.tctno.join(",");			
+			docsub.titleno = rpus*.titleno.join(",");			
+			//this is to fix existing tctno field
+			docsub.tctno = rpus*.titleno.join(",");
 			docsub.lotno = rpus*.lotno.join(",");						
 		}		
 		docsub.contact = app.contact;

@@ -15,6 +15,9 @@ public class BuildingPermitRpuService  {
 	@Service(value="TDOnlineService", connection="rpt")
     def tdSvc;
 
+    @Service(value="RptOboPluginService", connection="rpt")
+    def rptPluginSvc;
+
     @Service(value="EntityService", connection="entity")
     def entitySvc;
 
@@ -120,8 +123,11 @@ public class BuildingPermitRpuService  {
 		//search if there is the RPT_DOCUMENT if not create it.
 		def doc = appDocSvc.findDoc( [appid:o.appid, doctypeid:'BUILDING_RPT', create_if_not_exist: true] );
 
+		boolean _saveFees = true;
+		if( o._savefees !=null ) _saveFees = o._savefees;
+
 		def factBuilder = new FactBuilder();
-		appFeeSvc.assess( [factBuilder: factBuilder, parentid: doc.objid, savefees: true ] );
+		appFeeSvc.assess( [factBuilder: factBuilder, parentid: doc.objid, savefees: _saveFees ] );
 
 		factBuilder.facts.findAll{ it instanceof RpuEntry }.each {
 			rpuEm.find( [objid: it.objid] ).update( [taxclearancefee: it.taxclearancefee, truecopycertfee: it.truecopycertfee ] );	

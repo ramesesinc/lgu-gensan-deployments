@@ -98,6 +98,24 @@ public class OboAppFeeService  {
 		updateTotals( o );
 	}
 
+	void loadInfos( def filter, def factBuilder ) {
+		def infos = infoSvc.getInfos( filter );
+		infos.each {
+			if( it.datatype == "decimal" ) 	    factBuilder.facts << new OboDecimalInfo(it);
+			else if( it.datatype == "integer" ) factBuilder.facts << new OboIntegerInfo(it);
+			else if( it.datatype == "boolean" ) factBuilder.facts << new OboBooleanInfo(it);
+			else if( it.datatype == "lookup" )  factBuilder.facts << new OboLookupInfo(it);
+			else factBuilder.facts << new OboStringInfo(it);			
+		}
+	}
+
+	void loadDocs( def filter, def factBuilder ) {
+		def docs = vwDocEm.find( filter ).list();
+		docs.each {
+			factBuilder.facts << new OboDocument( doctype: it.doctypeid, appid: it.appid );	
+		}
+	}
+
 	@ProxyMethod
 	public def assess( def o ) {
 		def sd = vwDocEm.find([objid: o.parentid ] ).first();	
@@ -108,7 +126,6 @@ public class OboAppFeeService  {
 
 		def occ = vapp.occupancytype;
 
-		def infos = [];
 		def factBuilder = o.factBuilder;
 		if(!factBuilder) factBuilder = new FactBuilder();
 
@@ -116,14 +133,8 @@ public class OboAppFeeService  {
         factBuilder.facts << new OccupancyType( occ );
 
 		factBuilder.facts << new OboDocument( doctype: sd.doctype.objid, appid: sd.appid );
-		infos = infoSvc.getInfos( [parentid: sd.objid ] );
 
-		infos.each {
-			if( it.datatype == "decimal" ) 	    factBuilder.facts << new OboDecimalInfo(it);
-			else if( it.datatype == "integer" ) factBuilder.facts << new OboIntegerInfo(it);
-			else if( it.datatype == "boolean" ) factBuilder.facts << new OboBooleanInfo(it);
-			else if( it.datatype == "lookup" )  factBuilder.facts << new OboLookupInfo(it);
-		}
+		loadInfos( [parentid: sd.objid ], factBuilder );
 
 		def req = [:];
 		req.factBuilder = factBuilder;
@@ -173,9 +184,6 @@ public class OboAppFeeService  {
 	public void buildPaymentOrder( def o ) {
 		if(!o.appid) throw new Exception("Please specify appid in OboAppAssessmentService.assess");
 		
-		//assess all documents first before proceeding
-		//assessAll( o );
-
 		//clear all dynamic items first
 		//delete first all dynamic items
         feeEm.find( [appid: o.appid] ).where( " dynamic = 1 ").delete();	
@@ -189,8 +197,18 @@ public class OboAppFeeService  {
         };
 
 		//get the appclass first
-		def app = vwAbstractAppEm.find( [objid: o.appid ]).select("objid,appclass").first();
+		def app = vwAbstractAppEm.find( [objid: o.appid ]).select("objid,appclass,schemaname").first();
+		def vwAppEm = db.lookup( app.schemaname );
+		def vapp = vwAppEm.find( [objid: app.objid ] ).first();
+
+		def occ = vapp.occupancytype;
+
+		factBuilder.facts << new BuildingInfo( vapp ); 
+        factBuilder.facts << new OccupancyType( occ );
         factBuilder.facts << new OboPaymentOrder( apptype: app.appclass.toUpperCase()  );
+		loadInfos( [appid: o.appid ], factBuilder );
+
+		loadDocs( [appid: o.appid ], factBuilder );
 
         def req = [:];
         req.factBuilder = factBuilder;

@@ -9,6 +9,9 @@ class BuildingPermitEmailAttachmentInterceptor {
 	@DataContext("vw_obo_app")
 	def vwAppEm;
 
+	@DataContext("obo_doctype")
+	def docTypeEm;
+
 	@DataContext("building_permit_rpu")
 	def rpuEm;
 
@@ -49,22 +52,25 @@ class BuildingPermitEmailAttachmentInterceptor {
 			o.attachments << z; 
 		}
 
-		def rpus = rpuEm.find([appid: o.refid ]).select( "tdno,taxclearanceid,truecopycertid" ).list();
- 		rpus.each {
-        	try {
-	        	def res = jasperSvc.generateReport([reportid: "rpttaxclearance", refid: it.taxclearanceid] );
-	        	if(res.tokenid) {
-	        		o.attachments << [title: "TaxClearance_"+it.tdno+".pdf", filename:outputReportPath +res.tokenid + ".pdf" ];
+		def rpuDoc = docTypeEm.find( [objid:"BUILDING_RPT"] ).first();
+		if( rpuDoc?.includeinemail == 1 ) {
+			def rpus = rpuEm.find([appid: o.refid ]).select( "tdno,taxclearanceid,truecopycertid" ).list();
+	 		rpus.each {
+	        	try {
+		        	def res = jasperSvc.generateReport([reportid: "rpttaxclearance", refid: it.taxclearanceid] );
+		        	if(res.tokenid) {
+		        		o.attachments << [title: "TaxClearance_"+it.tdno+".pdf", filename:outputReportPath +res.tokenid + ".pdf" ];
+		        	}
+			        res = jasperSvc.generateReport([reportid: "tdtruecopy", refid: it.truecopycertid] );        	
+			        if( res.tokenid ) {
+		        		o.attachments << [title: "TrueCopyCert_"+it.tdno+".pdf", filename:outputReportPath+res.tokenid+".pdf" ];        	
+			        }
 	        	}
-		        res = jasperSvc.generateReport([reportid: "tdtruecopy", refid: it.truecopycertid] );        	
-		        if( res.tokenid ) {
-	        		o.attachments << [title: "TrueCopyCert_"+it.tdno+".pdf", filename:outputReportPath+res.tokenid+".pdf" ];        	
-		        }
-        	}
-        	catch( ignErr ) {
-        		println "error generating rpt reports for email. " + ignErr.getMessage();
-        	}
-        } 
+	        	catch( ignErr ) {
+	        		println "error generating rpt reports for email. " + ignErr.getMessage();
+	        	}
+	        } 		
+		}
 
         //construction signage printout
 		o.attachments <<[ reportid: "building_permit_signage", parameters: [objid:o.refid], title: "ConstructionSignage.pdf" ] 

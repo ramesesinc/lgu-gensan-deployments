@@ -11,7 +11,7 @@ app:
 
    modules:
       # obo
-      - { order: 304, version: 2.68, file: "modules/obo/rameses-gov-etracs-obo.jar" }
+      - { order: 304, version: 2.69, file: "modules/obo/rameses-gov-etracs-obo.jar" }
       - { order: 301, version: 2.68, file: "modules/obo/rameses-gov-etracs-obo-building.jar" }
       - { order: 304, version: 2.68, file: "modules/obo/rameses-gov-etracs-obo-shared.jar" }
       - { order: 302, version: 2.68, file: "modules/obo/rameses-gov-etracs-obo-occupancy.jar" }      

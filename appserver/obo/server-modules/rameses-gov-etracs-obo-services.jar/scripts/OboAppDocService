@@ -27,6 +27,9 @@ public class OboAppDocService  {
 	@DataContext("obo_app_doc_info")
 	def appInfoEm;
 
+	@DataContext("obo_variable")
+	def infoTypeEm;
+
 	@Service("DateService")
 	def dateSvc;
 
@@ -50,7 +53,14 @@ public class OboAppDocService  {
 				def m = docEm.create( doc );
 				if(doc.infos) { 
 					doc.infos.each {info->
-						info.parentid = m.objid;
+						//determine the parent to target the exact document 
+						def docid = m.objid;
+						def varInfo = infoTypeEm.find( [objid:info.name] ).first();
+						if(varInfo?.doctypeid) {
+							def vdoc = findDoc( [appid:o.appid, doctypeid:varInfo.doctypeid, create_if_not_exist:true] );
+							docid = vdoc.objid;
+						}
+						info.parentid = docid;
 						info.appid = o.appid;
 						if(!info.type) info.type = [name: info.name];
 						appInfoEm.create( info );

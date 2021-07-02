@@ -65,12 +65,13 @@ class OboAppDocFormReportInterceptor {
 		//load also the RPUs for display. get the tdno and tctno
 		def rpus = rpuEm.find( [appid: docsub.appid ] ).list();
 		if( rpus ) {
-			docsub.tdno = rpus*.tdno.join(",");
-			docsub.titleno = rpus*.titleno.join(",");			
+			docsub.tdno = rpus.findAll{it.tdno!=null}*.tdno.join(",");
+			docsub.titleno = rpus.findAll{it.titleno!=null}*.titleno.join(",");			
 			//this is to fix existing tctno field
-			docsub.tctno = rpus*.titleno.join(",");
-			docsub.lotno = rpus*.lotno.join(",");						
-		}		
+			docsub.tctno = rpus.findAll{it.titleno!=null}*.titleno.join(",");
+			docsub.lotno = rpus.findAll{it.lotno!=null}*.lotno.join(",");						
+		}	
+
 		docsub.contact = app.contact;
 
 		docsub.applicant = app.applicant;
@@ -187,7 +188,7 @@ class OboAppDocFormReportInterceptor {
 		docsub.supervisor = app.supervisor;
 
 		//load the main documents for reference
-		def dlist = vwSubdocEm.find([appid: docsub.appid ]).where(" doctype.type='MAIN' AND objid <> :id", [id: id] ).select("controlno,dtissued,doctype.objid,amount").list();
+		def dlist = vwSubdocEm.find([appid: docsub.appid ]).where(" NOT(controlno IS NULL) AND objid <> :id", [id: id] ).select("controlno,dtissued,doctype.objid,amount").list();
 		def zz = [:];
 		dlist.each {
 			def z = [controlno: it.controlno, dtissued: it.dtissued, amount: it.amount ];
